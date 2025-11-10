@@ -1,0 +1,156 @@
+---
+title: "Installing PostHog Go"
+description: "Step through the official installation process, including getting the library via Go modules, updating your project dependencies, and verifying the installation. Covers platform-agnostic approaches along with typical pitfalls in the setup stage."
+---
+
+# Installing PostHog Go
+
+Step confidently through the official installation process for the PostHog Go client. This guide will show you how to add the library to your Go project using Go modules, update your dependencies correctly, and verify your setup is ready for integration. Installation methods covered here apply universally regardless of your platform.
+
+---
+
+## 1. Prerequisites & System Requirements
+
+Before you install PostHog Go, ensure your environment meets these prerequisites:
+
+- **Go Version**: Go 1.18 or higher is required for module compatibility and full feature support.
+- **Internet Access**: Access to proxy.golang.org or direct internet is needed for module fetching.
+- **API Key**: Have your PostHog Project API key ready (found in your PostHog dashboard under `/setup`).
+
+<Tip>
+Even if you’re operating in offline or private network environments, you can vendor the PostHog Go package or manually download the module source to integrate.
+</Tip>
+
+---
+
+## 2. Installing the PostHog Go Client
+
+### Step 1: Initialize Go Modules (if not already initialized)
+
+If your project is not already using Go modules, initialize it:
+
+```bash
+cd /path/to/your/project
+# Initialize a new module (replace example.com/project with your own module path)
+go mod init example.com/project
+```
+
+### Step 2: Add PostHog Go as a Dependency
+
+Use the `go get` command to fetch and add the PostHog Go client:
+
+```bash
+go get github.com/PostHog/posthog-go
+```
+
+This command fetches the latest version compatible with your Go version and adds it to your `go.mod` file.
+
+### Step 3: Update Your Project Dependencies
+
+Ensure your dependencies are tidy and updated:
+
+```bash
+go mod tidy
+```
+
+This removes unused dependencies and downloads required transient dependencies.
+
+### Step 4: Verify the Installation
+
+Create a simple Go file `main.go` with the following content:
+
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/PostHog/posthog-go"
+)
+
+func main() {
+	client, err := posthog.NewWithConfig("your-project-api-key", posthog.Config{})
+	if err != nil {
+		panic(err)
+	}
+	defer client.Close()
+
+	fmt.Println("PostHog client initialized successfully")
+}
+```
+
+Replace `your-project-api-key` with your actual PostHog API key.
+
+Run it:
+
+```bash
+go run main.go
+```
+
+If you see `PostHog client initialized successfully` without errors, your installation is confirmed.
+
+---
+
+## 3. Common Pitfalls & Troubleshooting
+
+<AccordionGroup title="Troubleshooting Installation Issues">
+<Accordion title="Module Not Found or Fetch Errors">
+If you get errors fetching the module, check:
+
+- Your Go version meets minimum requirements.
+- Your internet connection or Go proxy settings allow module fetching.
+- The module path is correctly specified as `github.com/PostHog/posthog-go`.
+
+Temporarily disable `GOPROXY` to fetch directly, or configure it to use a proxy.
+</Accordion>
+<Accordion title="Incorrect API Key Configuration">
+Make sure you provide the correct **Project API Key**, starting with `phc_`.
+
+Using Personal API Keys (starting with `phx_`) in this step will not work for client initialization.
+</Accordion>
+<Accordion title="Go Modules Not Initialized">
+Running `go get` in a directory without a `go.mod` file will fail.
+
+Initialize Go modules with `go mod init` first.
+</Accordion>
+</AccordionGroup>
+
+<Tip>
+If you experience unexpected errors during build or execution, run `go clean -modcache` to clear the module cache, then re-run `go get` and `go mod tidy`.
+</Tip>
+
+---
+
+## 4. Next Steps
+
+Now that you have successfully installed PostHog Go, proceed to configure it for your application and capture your first event:
+
+- Review the [Configuration Setup](/getting_started/configuration_first_run/configuration_setup) guide to set environment variables and configure client options.
+- Try the [Quickstart & Example Workflows](/overview/features-and-integration/quickstart-and-examples) for practical usage.
+- Validate your integration with the [Validating Your Integration](/getting_started/configuration_first_run/validating_integration) instructions.
+
+<Tip>
+Explore the `examples/` directory in the PostHog Go repository, which includes ready-to-run code snippets demonstrating the client initialization, event capturing, and feature flag usage.
+</Tip>
+
+---
+
+## 5. Summary
+
+- Install via `go get github.com/PostHog/posthog-go`
+- Always use Go modules for dependency management
+- Confirm installation by initializing the client and printing confirmation
+- Prepare your API keys beforehand
+- Use troubleshooting section for common setup errors
+
+---
+
+## References
+
+- [PostHog Go Client GitHub Repository](https://github.com/PostHog/posthog-go)
+- [PostHog API Keys and Project Setup](/overview/features-and-integration/integration-with-posthog)
+- [.env.example Configuration File](https://github.com/PostHog/posthog-go/blob/main/examples/.env.example)
+- [PostHog Go Examples README](https://github.com/PostHog/posthog-go/blob/main/examples/README.md)
+
+---
+
+> _Note: This page focuses purely on installation. For configuration and first operations, please visit the corresponding documentation pages in the Getting Started and Feature Overview sections._
