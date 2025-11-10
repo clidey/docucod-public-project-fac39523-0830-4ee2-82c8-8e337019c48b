@@ -1,0 +1,175 @@
+---
+title: "Core Features at a Glance"
+description: "Overviews the main feature set: capturing custom events, identifying users, linking identities (aliasing), tracking group properties, evaluating feature flags (locally and remotely), and capturing errors/exceptions. Indicates which use cases are addressed by each key feature, connecting product value to technical capabilities."
+---
+
+# Core Features at a Glance
+
+PostHog Go provides a robust set of capabilities designed to empower Go applications with backend-driven analytics, feature experimentation, and enhanced user insights. This overview highlights the core features you can leverage to capture essential data, identify users, track groups, evaluate feature flags, and capture errors — all with straightforward integrations tailored to real-world use cases.
+
+---
+
+## Unlocking the Power of PostHog Go
+
+PostHog Go transforms your applications into data-rich engines, allowing you to:
+
+- Collect custom events that reflect user actions and business metrics.
+- Identify and manage users seamlessly across sessions and platforms.
+- Link user identities through aliasing for coherent cross-device insights.
+- Track group properties to understand segmentation beyond individuals.
+- Evaluate feature flags both locally and remotely to control feature rollouts and experiments.
+- Capture errors and exceptions to proactively improve application stability.
+
+Whether you aim to optimize user experience, perform targeted experimentation, or monitor system health, these features address the practical needs of developers and product teams.
+
+---
+
+## Core Features Explained
+
+### 1. Custom Event Capture
+
+**What it does:**
+Allows your application to report any user or system event to PostHog.
+
+**Why it matters:**
+Tracking meaningful events—such as button clicks, page visits, purchases—provides a foundation for behavioral analytics and data-driven decision-making.
+
+**Example:**
+```go
+client.Capture("user_signup", properties)
+```
+Capture a "user_signup" event with contextual properties, enabling dashboards and funnels in PostHog.
+
+---
+
+### 2. User Identification & Aliasing
+
+**What it does:**
+Associates events with unique user identities and merges anonymous with authenticated identities.
+
+**Why it matters:**
+Maintains accurate, continuous user records across sessions and devices, critical for personalized experiences and retention analysis.
+
+**Example:**
+```go
+client.Identify("user_123")
+client.Alias("previous_anonymous_id", "user_123")
+```
+This binds past anonymous activity to the logged-in user.
+
+---
+
+### 3. Group Properties Tracking
+
+**What it does:**
+Groups users into categories (e.g., companies, projects) and tracks associated data.
+
+**Why it matters:**
+Enables segmentation and analytics by group, unlocking insights across teams, organizations, or cohorts.
+
+**Usage scenario:**
+Assign users to a "company" group and analyze behavior per company to tailor enterprise offerings.
+
+---
+
+### 4. Feature Flag Evaluation
+
+**What it does:**
+Determines feature flag states for users, supporting gradual rollouts, targeting, and multi-variant experiments.
+
+**Why it matters:**
+Feature flags enable controlled releases, A/B testing, and remote configuration without redeploys.
+
+**Capabilities:**
+- Local evaluation for immediate decisions using flag definitions and cohorts.
+- Remote evaluation with fallback to local logic ensures reliability.
+- Supports complex user property filters and cohort logic.
+
+**Example:**
+```go
+enabled := client.IsFeatureEnabled("beta-feature", userContext)
+```
+Feature evaluation can branch user experiences dynamically.
+
+---
+
+### 5. Error and Exception Capture
+
+**What it does:**
+Logs and reports errors and exceptions occurring during application runtime.
+
+**Why it matters:**
+Proactively identifies issues before users report them, improving reliability and developer responsiveness.
+
+**Integration:**
+Supports customizing error capture to enrich error events with context.
+
+---
+
+## Bringing It All Together
+
+These features combine to offer a comprehensive platform for:
+
+- **Behavioral analytics** — Understand what users do and why.
+- **User journey tracking** — Connect events to authentic user profiles.
+- **Targeted experimentation** — Roll out and test features safely with flags.
+- **Segmentation and cohort analysis** — Identify user groups and tailor experiences.
+- **Operational monitoring** — Detect and resolve application errors promptly.
+
+---
+
+## Real-World Example: Progressive Feature Rollout
+
+Imagine launching a "Beta Feature" for US users in a specific cohort:
+
+- You define cohorts with precise conditions (e.g., region = USA, and cohort membership).
+- Roll out to 100% of this cohort while others get the default experience.
+- Feature flags ensure your app dynamically enables or disables the feature for each user based on these rules.
+
+This targeted approach mitigates risk and gathers valuable feedback before full release.
+
+---
+
+## Best Practices and Tips
+
+- **Identify users early:** Call `Identify` as soon as user identity is known to retain continuity.
+- **Leverage cohorts:** Use cohort definitions to simplify complex user segments for flags.
+- **Test flags locally:** Use local evaluation capabilities during development for fast iterations.
+- **Monitor errors closely:** Capture exceptions to catch quality issues before they impact your users.
+- **Roll out gradually:** Utilize rollout percentages to control exposure and minimize risk.
+
+---
+
+## next steps
+
+To implement these features smoothly, explore the following guides:
+
+- [Getting Started: Quickstart & Example Workflows](https://docs.posthog.com/overview/features-and-integration/quickstart-and-examples)
+- [Using Feature Flags](https://docs.posthog.com/guides/core-workflows/using-feature-flags)
+- [User Identification & Aliasing](https://docs.posthog.com/guides/core-workflows/user-identification-aliasing)
+
+These resources provide practical code examples, configuration tips, and troubleshooting advice to accelerate your integration.
+
+
+---
+
+_PostHog Go equips you with a powerful, user-focused toolkit for backend analytics and experimentation. Mastering these core features unlocks insights and control that shape better products and experiences._
+
+
+---
+
+## References
+
+- [What is PostHog Go? — Introduction & Value](https://docs.posthog.com/overview/introduction-and-value/what-is-posthog-go)
+- [Core Concepts & Terminology](https://docs.posthog.com/overview/architecture-and-concepts/core-terminology)
+- [Feature Flags & Remote Config - API Reference](https://docs.posthog.com/api-reference/core-entities/feature-flags)
+
+---
+
+## Additional Resources
+
+Explore the GitHub repository for PostHog Go to dive into source code and examples:
+
+[PostHog Go GitHub Repository](https://github.com/PostHog/posthog-go)
+
+---
