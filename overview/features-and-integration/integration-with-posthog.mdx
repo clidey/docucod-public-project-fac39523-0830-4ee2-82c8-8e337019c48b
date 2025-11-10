@@ -1,0 +1,242 @@
+---
+title: "Integrating with the PostHog Platform"
+description: "Explains how the Go client fits into a broader analytics ecosystem, including connections to the PostHog cloud or self-hosted environments, use of project and personal API keys, and options for advanced configuration. Summarizes data ingestion, endpoint setup, and API compatibility."
+---
+
+# Integrating with the PostHog Platform
+
+## Unlock the Full Potential of Your Go Application with Seamless PostHog Integration
+
+The PostHog Go client is your gateway to harnessing the power of PostHog's analytics and feature flag platform. Whether you're sending user behavior events, evaluating feature flags, or enriching user profiles, this integration empowers your Go services to communicate effortlessly with the PostHog backend — hosted in the cloud or on your own infrastructure.
+
+### Why Integrate PostHog Go Client with the PostHog Platform?
+- **Unified Data Stream:** Send robust, structured events and user data directly to your PostHog project with minimal latency.
+- **Flexible Deployment:** Compatible with PostHog Cloud or self-hosted instances allowing control over data residency and infrastructure.
+- **Advanced Feature Flagging:** Leverage project and personal API keys to unlock real-time, performant feature flag evaluation.
+- **Custom Endpoint Support:** Easily configure connections to various PostHog server endpoints, whether local or remote.
+
+---
+
+## What Does Integration Mean in This Context?
+
+The integration between your Go application and the PostHog platform involves:
+
+- **Authentication:** Using your Project API Key and optionally a Personal API Key for enhanced feature flag functionality.
+- **Event Ingestion:** Posting batches of event captures, user identifications, and aliasing calls to PostHog’s ingestion API.
+- **Feature Flag Evaluation:** Querying locally or remotely to decide whether a feature flag is enabled for a given user.
+- **Configuration:** Defining endpoint URLs and request options to control data flow.
+
+By integrating the client, you ensure your application’s events and user data are captured consistently and enriched for analysis and experimentation by your analytics teams.
+
+---
+
+## Authentication: API Keys and Their Roles
+
+### Project API Key
+This key authenticates event ingestion for your specific PostHog project. It identifies which project to route events, ensuring your data lands in the right workspace.
+
+### Personal API Key (Optional but Recommended)
+Used primarily for** feature flag evaluation**, this key allows the client to perform local evaluation efficiently and supports advanced use cases like remote config and flag dependencies. Keep in mind:
+
+- Using your Personal API Key may incur additional usage costs.
+- It enables faster and more responsive feature flag queries.
+
+Configure these keys when initializing your client, as shown below:
+
+```go
+client, err := posthog.NewWithConfig(
+    os.Getenv("POSTHOG_PROJECT_API_KEY"),
+    posthog.Config{
+        PersonalApiKey: os.Getenv("POSTHOG_PERSONAL_API_KEY"),
+        Endpoint:       "https://app.posthog.com",
+    },
+)
+```
+
+<Tip>
+Store API keys securely using environment variables or secret management tools. Never hardcode keys in your source code.
+</Tip>
+
+---
+
+## PostHog Endpoint Configuration
+
+Your Go client needs to know where to send event data and feature flag requests. The endpoint URL determines whether you communicate with:
+
+- **PostHog Cloud:** The default public SaaS platform.
+- **Self-Hosted PostHog:** Your privately deployed PostHog instance.
+
+Set the endpoint during client initialization by specifying the `Endpoint` parameter in the config. For example:
+
+```go
+posthog.Config{
+   Endpoint: "https://us.posthog.com",
+}
+```
+
+or set via environment variable `POSTHOG_ENDPOINT` for convenient configuration without changing code.
+
+---
+
+## Data Ingestion Model
+
+PostHog Go sends data in batches to optimize network efficiency and maintain event ordering. Each batch contains one or more event payloads with the following key properties:
+
+- `distinct_id`: Uniquely identifies the user or device
+- `event`: Event name (e.g., "Download", "$pageview")
+- `properties`: Encapsulates metadata about the event and user context
+- `timestamp`: When the event occurred
+- `type`: The kind of message such as `capture` or `identify`
+
+**Example Payload** `capture` event:
+
+```json
+{
+  "api_key": "your-project-api-key",
+  "batch": [
+    {
+      "distinct_id": "123456",
+      "event": "Download",
+      "library": "posthog-go",
+      "library_version": "1.0.0",
+      "properties": {
+        "$lib": "posthog-go",
+        "$lib_version": "1.0.0",
+        "application": "PostHog Go",
+        "platform": "macos",
+        "version": "1.0.0"
+      },
+      "send_feature_flags": false,
+      "timestamp": "2009-11-10T23:00:00Z",
+      "type": "capture",
+      "uuid": ""
+    }
+  ]
+}
+```
+
+This batch model maximizes throughput and reliability when sending multiple events in quick succession.
+
+---
+
+## API Compatibility and Protocol
+
+The PostHog Go client communicates using a RESTful HTTP API backed by JSON payloads aligned with PostHog ingestion standards. This means:
+
+- **Backward Compatibility:** The client sends data formats compatible with PostHog server ingestion API.
+- **Extensibility:** New event types or properties can be added without breaking existing integration.
+- **Secure Communication:** All requests use HTTPS endpoints by default for secure transmission.
+
+No additional configuration is needed to support the API format – just provide valid API keys and endpoint.
+
+---
+
+## How Integration Fits Into Your Analytics Workflow
+
+```mermaid
+flowchart TD
+    App["Your Go Application"] -->|Send Events & Identifies| Client["PostHog Go Client"]
+    Client -->|Batch Events via HTTP| Endpoint["PostHog Endpoint (Cloud or Self-hosted)"]
+    Endpoint -->|Store & Analyze| PostHogDB["PostHog Analytics Platform"]
+    PostHogDB --> Dashboard["Data Exploration & Feature Flags Dashboard"]
+    Client -->|Feature Flag Eval| FlagService["Feature Flag Evaluation Service"]
+    FlagService --> Endpoint
+    FlagService --> PostHogDB
+
+    subgraph ""
+      direction LR
+      Client
+      Note["Local or remote flag evaluation"]
+    end
+
+    Note -.-> FlagService
+```
+
+- Your Go app instruments event tracking and user metadata.
+- The client batches and securely sends data to your configured PostHog endpoint.
+- PostHog processes and aggregates this data for analytics and experimentation.
+- Feature flag evaluations occur via the client using the Personal API Key and endpoint.
+
+---
+
+## Best Practices for Smooth Integration
+
+- **Secure Your Keys:** Always use environment variables to avoid leaking API keys.
+- **Use Personal API Keys Wisely:** Enable advanced feature flag capabilities but monitor usage costs.
+- **Configure Endpoint Carefully:** Match the endpoint URL with your deployment (cloud vs self-hosted).
+- **Batch Events Efficiently:** Use the client’s queuing mechanism to send events in batches for performance.
+- **Validate Your Setup:** Use example apps and verify your events in the PostHog UI.
+
+---
+
+## Quick Snippet: Initializing the Client for PostHog Integration
+
+```go
+package main
+
+import (
+    "os"
+    "github.com/posthog/posthog-go"
+)
+
+func main() {
+    client, err := posthog.NewWithConfig(
+        os.Getenv("POSTHOG_PROJECT_API_KEY"),
+        posthog.Config{
+            PersonalApiKey: os.Getenv("POSTHOG_PERSONAL_API_KEY"),
+            Endpoint:       "https://app.posthog.com",
+        },
+    )
+    if err != nil {
+        panic(err)
+    }
+    defer client.Close()
+
+    client.Enqueue(posthog.Capture{
+        DistinctId: "user_123",
+        Event:      "Item Purchased",
+        Properties: posthog.NewProperties().Set("plan", "Pro"),
+    })
+}
+```
+
+This snippet demonstrates a typical setup that connects your Go app directly with PostHog’s platform, utilizing both project and personal API keys to unlock advanced analytics and experimentation features.
+
+---
+
+## Troubleshooting Common Integration Issues
+
+<AccordionGroup title="Common Integration Challenges">
+<Accordion title="Invalid API Key or Authentication Failures">
+Ensure that your `POSTHOG_PROJECT_API_KEY` and `POSTHOG_PERSONAL_API_KEY` are correctly set and have not expired or been revoked in your PostHog project settings.
+</Accordion>
+<Accordion title="Wrong Endpoint URL">
+Verify the `Endpoint` configuration matches your PostHog instance (e.g., `https://app.posthog.com` for cloud or your private host URL for self-hosted).
+</Accordion>
+<Accordion title="Event Not Appearing in Dashboard">
+Check network logs to confirm your application is sending batches correctly. Validate the payload structure matches expected schema.
+</Accordion>
+<Accordion title="Feature Flags Not Evaluating as Expected">
+Confirm the Personal API Key is provided and valid. Verify the feature flag keys and user distinct IDs used in your evaluation calls.
+</Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+To proceed with integrating the PostHog Go client into your application’s workflow, explore these guides:
+
+- [Getting Started: Quickstart & Example Workflows](/overview/features-and-integration/quickstart-and-examples) — Learn how to initialize the client and begin capturing events.
+- [Capturing Events](/guides/core-workflows/capturing-events) — Deep dive into event tracking best practices.
+- [User Identification & Aliasing](/guides/core-workflows/user-identification-aliasing) — Understand users and connect their identities.
+- [Using Feature Flags](/guides/core-workflows/using-feature-flags) — Implement dynamic feature rollout and experimentation.
+
+If you want to customize your client configuration or troubleshoot connection issues, refer to:
+
+- [Client Initialization & Authentication](/api-reference/core-entities/client-initialization-auth)
+- [Configuration & Performance Optimization](/guides/advanced-use-cases/performance-optimization)
+
+Together, these resources will maximize your ability to enrich your Go applications with PostHog’s full analytics and experimentation capabilities.
+
+---
