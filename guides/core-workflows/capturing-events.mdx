@@ -1,0 +1,270 @@
+---
+title: "Capturing Events"
+description: "Learn how to record events and user interactions from your application with best practices for property usage and deduplication. This guide walks through typical event tracking setups and shows how to maximize data quality from the outset."
+---
+
+# Capturing Events
+
+Capture and record events and user interactions from your Go applications with PostHog Go, ensuring high-quality analytics data from the start. This guide walks you through setting up event tracking, using event properties effectively, including feature flag states, and preventing duplicate events with UUIDs.
+
+---
+
+## 1. Overview
+
+### What You Will Accomplish
+This guide helps you implement robust event capturing in your Go application using the PostHog Go client. You’ll learn how to send custom events, enrich them with properties, include feature flag data, and maintain data integrity through deduplication.
+
+### Prerequisites
+- PostHog Go client installed and configured (refer to [Installation](https://posthog.com/docs/integrations/go#installation))
+- Valid PostHog project API key
+- Optional: Personal API key (for advanced feature flag usage)
+- Basic familiarity with Go programming
+
+### Expected Outcome
+- Ability to emit custom events with meaningful properties
+- Include feature flag states with events to correlate experiment data
+- Understand event UUID usage for deduplication to avoid inflated metrics
+
+### Time Estimate
+Approximately 20-30 minutes to read and implement basic capturing, including testing.
+
+### Difficulty Level
+Beginner to Intermediate
+
+---
+
+## 2. Step-by-Step Instructions
+
+### Step 1: Initialize the PostHog Client
+Start by creating a PostHog client instance configured with your project API key and desired options like batching and verbosity.
+
+```go
+client, err := posthog.NewWithConfig("your_project_api_key", posthog.Config{
+    Interval:  30 * time.Second,
+    BatchSize: 100,
+    Verbose:   true,
+    Endpoint:  "https://app.posthog.com", // or your self-hosted endpoint
+})
+if err != nil {
+    panic(err)
+}
+defer client.Close()
+```
+
+**Result:** A client ready to accept event captures.
+
+---
+
+### Step 2: Send a Basic Custom Event
+Use the `Enqueue` method to send events. Include a descriptive event name and relevant properties.
+
+```go
+err = client.Enqueue(posthog.Capture{
+    Event:      "Download",
+    DistinctId: "user_123456",
+    Properties: map[string]interface{}{
+        "application": "PostHog Go",
+        "version":     "1.0.0",
+        "platform":    "macos",
+        "file_size":   "2.5MB",
+    },
+})
+if err != nil {
+    fmt.Println("Failed to enqueue event:", err)
+}
+```
+
+**Result:** An event labeled "Download" is queued for sending with attached metadata.
+
+---
+
+### Step 3: Capture Common User Interactions
+Track user interaction events like page views or button clicks with their typical properties.
+
+```go
+// Page View Event
+_ = client.Enqueue(posthog.Capture{
+    Event:      "$pageview",
+    DistinctId: "user_123456",
+    Properties: map[string]interface{}{
+        "$current_url": "https://example.com/dashboard",
+        "$title":       "Dashboard - PostHog",
+        "$referrer":    "https://google.com",
+    },
+})
+
+// Button Clicked Event
+_ = client.Enqueue(posthog.Capture{
+    Event:      "Button Clicked",
+    DistinctId: "user_123456",
+    Properties: map[string]interface{}{
+        "button_text": "Sign Up",
+        "page":        "/landing",
+        "experiment":  "homepage_test_v2",
+    },
+})
+```
+
+**Tip:** Use standard `$`-prefixed property keys for recognized PostHog properties like `$current_url` to leverage built-in analytics.
+
+---
+
+### Step 4: Include Feature Flag States Automatically
+To correlate experiments and feature exposure, include the user's feature flag states when capturing events. This requires initializing the client with both project and personal API keys.
+
+```go
+if err := client.Enqueue(posthog.Capture{
+    Event:           "Purchase",
+    DistinctId:      "user_123456",
+    Properties:      map[string]interface{}{
+        "amount":   99.99,
+        "currency": "USD",
+        "product":  "Premium Plan",
+    },
+    SendFeatureFlags: posthog.SendFeatureFlags(true),
+}); err != nil {
+    fmt.Println("Error sending Purchase event:", err)
+}
+```
+
+**What Happens:** This event will automatically include all active feature flag states for the user.
+
+---
+
+### Step 5: Advanced Feature Flag Evaluation with Custom Properties
+Leverage `SendFeatureFlagsOptions` to influence flag evaluation locally by sending custom person and group properties.
+
+```go
+err = client.Enqueue(posthog.Capture{
+    Event:      "Feature Used",
+    DistinctId: "premium_user_456",
+    Properties: map[string]interface{}{
+        "feature_name": "advanced_analytics",
+        "usage_count":  1,
+    },
+    SendFeatureFlags: &posthog.SendFeatureFlagsOptions{
+        PersonProperties: posthog.NewProperties().Set("plan", "premium").Set("beta_user", true),
+    },
+})
+```
+
+This allows you to send events with evaluation contexts when server-side feature flag evaluation is insufficient or needs augmentation.
+
+---
+
+### Step 6: Use UUIDs to Prevent Duplicate Events
+For idempotency and event deduplication (especially in distributed or retry scenarios), include a unique UUID per event.
+
+```go
+err = client.Enqueue(posthog.Capture{
+    Event:      "Download",
+    DistinctId: "user_123456",
+    Properties: map[string]interface{}{
+        "application": "PostHog Go",
+        "platform":    "macos",
+        "version":     "1.0.0",
+    },
+    Timestamp:  time.Date(2009, 11, 10, 23, 0, 0, 0, time.UTC),
+    UUID:       "11111111-1111-1111-1111-111111111111",
+})
+```
+
+Including a stable `UUID` prevents counting the same event multiples times if sent more than once due to network errors or retries.
+
+---
+
+## 3. Best Practices & Tips
+
+- **Consistent Distinct IDs:** Always use a stable and unique `DistinctId` per user to tie events correctly.
+- **Use Recognized Property Keys:** For automatic features like GeoIP and autocapture, use `$`-prefixed keys where appropriate.
+- **Leverage Feature Flags:** Incorporate feature flag states to enrich event context and enable powerful analysis.
+- **Use UTC Timestamps:** Supply `Timestamp` values in ISO 8601 or Go `time.Time` in UTC to maintain consistent timing.
+- **Batch Events:** Configure batching (`BatchSize` and `Interval`) sensibly to optimize network usage.
+- **Deduplicate Events:** When operating in unreliable networks or with retries, use `UUID` to avoid inflated counts.
+
+---
+
+## 4. Troubleshooting
+
+<AccordionGroup title="Common Issues When Capturing Events">
+<Accordion title="Events Not Appearing in Dashboard">
+Ensure your client is correctly initialized with the right project API key and endpoint. Check for errors on `Enqueue` calls and client logs. Verify network connectivity and that the PostHog backend accepts your events.
+</Accordion>
+<Accordion title="Feature Flags Not Included with Events">
+Confirm that both your project API key and personal API key are configured when initializing the client. Only setting `SendFeatureFlags: true` without personal API key will not include flag states. Also, check whether the user has any active flags.
+</Accordion>
+<Accordion title="Duplicate Event Data in Analytics">
+If you see duplicate events in PostHog, consider using the `UUID` property in your captures to help PostHog deduplicate events.
+</Accordion>
+</AccordionGroup>
+
+---
+
+## 5. Examples
+
+Below is an excerpt demonstrating complete event capture patterns including feature flags and UUIDs.
+
+```go
+func captureExamples(client posthog.Client) {
+    // Simple event
+    client.Enqueue(posthog.Capture{
+        Event:      "Download",
+        DistinctId: "user_123456",
+        Properties: map[string]interface{}{
+            "application": "PostHog Go",
+            "version":     "1.0.0",
+            "platform":    "macos",
+            "file_size":   "2.5MB",
+        },
+    })
+
+    // Event with feature flags
+    client.Enqueue(posthog.Capture{
+        Event:           "Purchase",
+        DistinctId:      "user_123456",
+        Properties:      map[string]interface{}{
+            "amount":   99.99,
+            "currency": "USD",
+            "product":  "Premium Plan",
+        },
+        SendFeatureFlags: posthog.SendFeatureFlags(true),
+    })
+
+    // Event with UUID for deduplication
+    client.Enqueue(posthog.Capture{
+        Event:      "Download",
+        DistinctId: "user_123456",
+        Properties: map[string]interface{}{
+            "application": "PostHog Go",
+            "platform":    "macos",
+            "version":     "1.0.0",
+        },
+        UUID: "11111111-1111-1111-1111-111111111111",
+    })
+}
+```
+
+---
+
+## 6. Next Steps
+
+- Explore [User Identification & Aliasing](https://posthog.com/docs/guides/core-workflows/user-identification-aliasing) to connect events to users reliably.
+- Learn about [Event Deduplication with UUIDs](https://posthog.com/docs/guides/advanced-use-cases/event-deduplication-uuid) for advanced reliability.
+- Integrate [Feature Flags](https://posthog.com/docs/guides/core-workflows/using-feature-flags) for experiments and feature rollout insights.
+- Consult the [API Reference: Event Capture](https://posthog.com/docs/api-reference/core-entities/capture-events) for detailed usage of capture-related functions.
+
+---
+
+## 7. References
+
+- [PostHog Go GitHub Repository](https://github.com/PostHog/posthog-go)
+- [PostHog Official Documentation](https://posthog.com/docs)
+- PostHog Go example code: [`examples/capture.go`](https://github.com/PostHog/posthog-go/blob/main/examples/capture.go)
+
+---
+
+<Check>
+Verify your client initialization, distinct_id usage, and required keys before sending events to ensure analytics data accuracy.
+</Check>
+
+---
