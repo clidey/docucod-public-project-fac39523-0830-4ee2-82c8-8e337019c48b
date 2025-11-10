@@ -1,0 +1,316 @@
+---
+title: "Using Feature Flags"
+description: "Practical guide to feature flag evaluation and rollout strategies. Covers boolean and multivariate flags, remote config payloads, and targeting scenarios, empowering you to safely experiment in production."
+---
+
+# Using Feature Flags in PostHog Go
+
+Unlock the power of safe, gradual releases and personalized experiences by mastering feature flags in your Go applications. This guide walks you through evaluating and rolling out feature flags effectively—covering simple boolean toggles, versatile multivariate flags, remote configuration payloads, and advanced targeting strategies.
+
+---
+
+## 1. Introduction to Feature Flags
+
+Feature flags enable you to turn features on or off dynamically without deploying new code. PostHog Go empowers backend-driven feature management, allowing precise targeting based on user properties, groups, or flag dependencies.
+
+### What You'll Achieve
+- Understand how to evaluate whether a feature is enabled for a user
+- Use multivariate flags for complex experimentation
+- Retrieve remote configuration payloads for dynamic feature parameters
+- Apply properties and groups for targeted rollouts
+
+### Prerequisites
+- PostHog Go client installed and configured
+- Access to your PostHog project with feature flags defined
+- Basic familiarity with Go programming
+
+---
+
+## 2. Evaluating Simple Boolean Feature Flags
+
+Boolean flags toggle features on or off for users based on rollout percentages or properties.
+
+### How to Check if a Feature is Enabled
+
+1. Prepare a `FeatureFlagPayload` specifying the flag key and user identifier (`DistinctId`). Optionally add `PersonProperties`.
+2. Call `IsFeatureEnabled()` with this payload.
+3. Use the returned `bool` value to conditionally enable features.
+
+```go
+isEnabled, err := client.IsFeatureEnabled(FeatureFlagPayload{
+    Key:        "simple-flag",
+    DistinctId: "user-123",
+})
+if err != nil {
+    log.Fatal(err)
+}
+if isEnabled {
+    fmt.Println("Feature is enabled for this user")
+} else {
+    fmt.Println("Feature is disabled for this user")
+}
+```
+
+### Rollouts Without Explicit Percentage
+If a rollout percentage is undefined (null), the flag is treated as enabled for all users.
+
+<Tip>
+Simple flags with no rollout percentage default to full rollout, enabling the feature for 100% of users.
+</Tip>
+
+---
+
+## 3. Working with Multivariate Flags
+
+Multivariate flags allow splitting users among multiple variants rather than a simple on/off toggle.
+
+### Checking Which Variant a User Gets
+
+Use `GetFeatureFlag()` to return the variant key as a string.
+
+```go
+variant, err := client.GetFeatureFlag(FeatureFlagPayload{
+    Key:        "multivariate-flag",
+    DistinctId: "user-123",
+})
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Printf("User variant: %s\n", variant) // e.g., "first-variant", "second-variant"
+```
+
+### Important Notes
+- Variants are assigned based on rollout percentages divided among the multivariate options.
+- Variants named "false" or "true" are treated literally as strings, not boolean values.
+
+<Warning>
+Calling `IsFeatureEnabled()` on multivariate flags returns the variant key string, which might be "false" or "true" as strings, not booleans. Use `GetFeatureFlag()` to get variant keys explicitly.
+</Warning>
+
+---
+
+## 4. Fetching Remote Configuration Payloads
+
+Feature flags can include payloads (JSON strings) to configure feature behavior dynamically.
+
+### Retrieving Payloads
+Use `GetFeatureFlagPayload()` to fetch the associated payload string.
+
+```go
+payload, err := client.GetFeatureFlagPayload(FeatureFlagPayload{
+    Key:        "configurable-feature",
+    DistinctId: "user-123",
+})
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Println("Config payload:", payload)
+```
+
+### Working with Payloads
+- Payloads are strings containing JSON-formatted data.
+- Decode these dynamically to adjust feature behavior without redeploying code.
+
+---
+
+## 5. Targeting Users with Properties and Groups
+
+Apply properties to specify which users or groups the flag rollout applies to.
+
+### Person Properties
+- Use the `PersonProperties` field with key-value pairs for user attributes (e.g., region, email).
+- Supports operators like `exact`, `icontains`, `regex`, and numerical comparisons.
+
+### Group Properties
+- Define rollout conditions based on group attributes using the `Groups` map and `GroupProperties`.
+- Supports filters on company, project, or custom group types.
+
+### Example: Targeting a User by Region
+
+```go
+isEnabled, err := client.IsFeatureEnabled(FeatureFlagPayload{
+    Key:              "simple-flag",
+    DistinctId:       "user-123",
+    PersonProperties: NewProperties().Set("region", "USA"),
+})
+```
+
+### Example: Using Group Properties
+
+```go
+isEnabled, err := client.IsFeatureEnabled(FeatureFlagPayload{
+    Key:             "group-flag",
+    DistinctId:      "user-123",
+    Groups:          Groups{"company": "abc"},
+    GroupProperties: map[string]Properties{"company": NewProperties().Set("name", "Project Name 1")},
+})
+```
+
+<Info>
+Properly setting group properties ensures the SDK evaluates feature flags at the group level, enabling staged rollouts for organizations or projects.
+</Info>
+
+---
+
+## 6. Handling Flag Dependencies
+
+Feature flags can depend on other flags' values to activate.
+
+### How Dependencies Work
+- Flags specify dependencies via properties with the operator `flag_evaluates_to`.
+- The SDK evaluates dependent flags recursively to ensure all conditions are met.
+
+### Important Considerations
+- _Local evaluation_ (`OnlyEvaluateLocally` = true) requires all dependencies to be present locally.
+- Missing dependencies during local evaluation result in errors or fallback to remote API evaluation.
+- Circular dependencies cause fallback to remote evaluation.
+
+### Example: Evaluating a Flag with Dependencies Locally
+
+```go
+isEnabled, err := client.IsFeatureEnabled(FeatureFlagPayload{
+    Key:                 "flag-with-dependencies",
+    DistinctId:          "test-user",
+    PersonProperties:    NewProperties().Set("email", "test@example.com"),
+    OnlyEvaluateLocally: true,
+})
+if err != nil {
+    log.Printf("Failed to evaluate flag locally: %v", err)
+}
+```
+
+<Warning>
+When using `OnlyEvaluateLocally`, ensure dependent flags exist in local evaluation data to avoid errors.
+</Warning>
+
+---
+
+## 7. Using Only Local Evaluation
+
+You can specify `OnlyEvaluateLocally` to force using cached local flag data without falling back to the API.
+
+### When to Use
+- Offline or low-latency environments
+- To prevent unnecessary network calls
+
+### Behavior
+- Returns `nil` or an error if the flag or dependencies aren't available locally
+- Does not fallback to the remote API
+
+### Example Usage
+
+```go
+isEnabled, err := client.IsFeatureEnabled(FeatureFlagPayload{
+    Key:                 "beta-feature",
+    DistinctId:          "user-456",
+    OnlyEvaluateLocally: true,
+})
+```
+
+---
+
+## 8. Best Practices and Tips
+
+- **Rollouts:** Use gradual rollout percentages to safely release features.
+- **Person Properties:** Leverage common user attributes like email domain or region for precise targeting.
+- **Groups:** Use `Groups` and `GroupProperties` for organizational rollout control.
+- **Dependency Care:** Avoid circular flag dependencies to prevent fallback misses.
+- **Consistency:** Use the same `DistinctId` to maintain consistent flag results per user.
+
+<Tip>
+Always call `ReloadFeatureFlags()` if you update flags frequently in your backend to keep local evaluation data current.
+</Tip>
+
+---
+
+## 9. Troubleshooting Common Issues
+
+### Flag Evaluation Fails or Returns Unexpected Results
+- Verify that feature flags and required dependencies exist in local evaluation data.
+- Check rollout percentages; 0 means feature off, null means fully on.
+- Ensure `DistinctId` and `PersonProperties` match targeting conditions.
+
+### Timeout or Network Errors Fetching Flags
+- Configure client `FeatureFlagRequestTimeout` appropriately.
+- Confirm endpoint URL and API keys are correct.
+
+### Multivariate Flags Returning Boolean Instead of String
+- Use `GetFeatureFlag()` to obtain variant keys as strings.
+- Avoid using `IsFeatureEnabled()` for multivariate flags when precise variants are required.
+
+### Local Evaluation Yielding Errors with Static Cohorts
+- This can cause automatic fallback to the API.
+- Ensure cohorts used locally are available in the SDK to avoid fallback.
+
+---
+
+## 10. Next Steps & Related Resources
+
+- Explore [Capturing Events](/guides/core-workflows/capturing-events) to combine feature flags with user analytics.
+- Review [User Identification & Aliasing](/guides/core-workflows/user-identification-aliasing) for accurate user targeting.
+- Dive into [Integrating with the PostHog Platform](/overview/features-and-integration/integration-with-posthog) for setup and advanced configurations.
+- Check the [API Reference: Feature Flags & Remote Config](/api-reference/core-entities/feature-flags) for programmatic details.
+
+---
+
+## Appendix: Code Snippets for Quick Reference
+
+<CodeGroup>
+```go
+// Check if boolean feature flag is enabled
+isEnabled, err := client.IsFeatureEnabled(FeatureFlagPayload{
+    Key:        "simple-flag",
+    DistinctId: "user-123",
+})
+```
+```go
+// Get variant key from a multivariate flag
+variant, err := client.GetFeatureFlag(FeatureFlagPayload{
+    Key:        "multivariate-flag",
+    DistinctId: "user-123",
+})
+```
+```go
+// Retrieve remote config payload for a flag
+payload, err := client.GetFeatureFlagPayload(FeatureFlagPayload{
+    Key:        "configurable-feature",
+    DistinctId: "user-123",
+})
+```
+```go
+// Using person and group properties for targeted evaluation
+isEnabled, err := client.IsFeatureEnabled(FeatureFlagPayload{
+    Key:              "group-flag",
+    DistinctId:       "user-123",
+    Groups:           Groups{"company": "abc"},
+    GroupProperties:  map[string]Properties{"company": NewProperties().Set("name", "Project Name 1")},
+    PersonProperties: NewProperties().Set("region", "USA"),
+})
+```
+</CodeGroup>
+
+---
+
+Harness feature flags today to accelerate development cycles, minimize risk, and deliver compelling, personalized experiences with PostHog Go.
+
+
+---
+
+## Glossary
+
+- **FeatureFlagPayload**: The input structure containing flag key and user context.
+- **DistinctId**: Unique identifier for the user.
+- **PersonProperties**: Attributes related to an individual user.
+- **Groups**: Key-value identifiers for groups (e.g., company or project).
+- **GroupProperties**: Attributes of groups used in flag conditions.
+- **Rollout Percentage**: Percentage of users/groups exposed to a flag.
+- **Dependency Chain**: List of flags a given flag depends on for activation.
+
+
+---
+
+## For More Examples
+See the [PostHog Go repository](https://github.com/PostHog/posthog-go) for integration examples and tests demonstrating feature flag use in real-world scenarios.
+
+
+
