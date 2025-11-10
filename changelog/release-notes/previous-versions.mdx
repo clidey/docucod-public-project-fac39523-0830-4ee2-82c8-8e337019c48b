@@ -1,0 +1,121 @@
+---
+title: "Previous Versions"
+description: "A chronological archive of past releases to help you review the evolution of features and stability over time. Quickly find details for a specific version if you need to reference older behaviors or prepare for upgrades from previous releases."
+---
+
+# Previous Versions
+
+The **Previous Versions** page provides a comprehensive chronological archive of all past releases of the PostHog Go client. It is designed to help users easily track the evolution of the client, review feature advancements, stability improvements, and address upgrading needs. This documentation focuses on what you, as a user, need to know about historical versions — from understanding what changed, addressing potential compatibility issues, to preparing your application upgrade strategy.
+
+---
+
+## Navigating Past Releases
+
+Users often need quick access to older version details when troubleshooting, verifying behavior changes, or planning upgrades. This page organizes release information in reverse chronological order, allowing you to find the most recent and also legacy version details easily.
+
+### How to Use This Archive Effectively
+
+- **Identify your current version:** Start by locating your current client version to understand which updates and fixes apply to you.
+- **Review Release Highlights:** Each version entry highlights key features, improvements, or bug fixes that impact your application.
+- **Check for Breaking Changes:** Pay special attention to any breaking changes or deprecations that might require code or configuration updates.
+- **Plan Migration:** Use the provided notes and guidance to smoothly migrate from one version to another without disrupting your workflows.
+
+
+## Example Release Entry
+
+Each release listed contains the following details:
+
+- **Version Number:** Follows semantic versioning (e.g., 1.6.12) to clearly communicate the release scope.
+- **Release Date:** The official date when the release was published.
+- **Executive Summary:** A high-level overview focusing on what this release achieves or fixes from a user perspective.
+- **New Features and Improvements:** Clear explanation of enhancements that provide new capabilities or improve existing ones.
+- **Bug Fixes:** Insights into resolved issues that you may have encountered.
+- **Breaking Changes and Deprecations:** Explicit warnings and guidance to avoid upgrade pitfalls.
+
+### Illustrative Example
+
+```markdown
+### Version 1.6.12 - Released 2024-05-20
+
+- **Executive Summary:** This patch stabilizes the feature flag evaluation logic and updates the default version constant.
+- **Improvements:**
+  - Refined feature flag rollout percentage handling for multi-group scenarios.
+  - Updated versioning constant for easier test version overrides.
+- **Bug Fixes:**
+  - Fixed edge case in local feature flag computation to respect active flags correctly.
+- **Breaking Changes:**
+  - None in this patch.
+```
+
+
+## Best Practices for Using Older Versions
+
+- **Test Thoroughly:** When applying an older version, validate functionality in a staging environment to avoid surprises.
+- **Check Compatibility:** Make sure dependencies and your integration environment support the version’s requirements.
+- **Keep Updated:** Even when using older versions, monitor for security updates or critical fixes.
+
+
+## Troubleshooting Tips
+
+- If you experience unexpected behavior, verify the release notes of your current version for known issues or fixes.
+- Use the changelog to pinpoint when a feature was introduced or modified to assist with debugging.
+- In case of upgrade challenges, consult the upgrade and migration guidance pages linked in the navigation.
+
+
+## How This Fits in the Documentation
+
+The **Previous Versions** page complements other changelog and upgrade documentation, such as:
+
+- [Latest Release Notes](/changelog/release-notes/latest-release) — stay updated with the newest features and fixes.
+- [Breaking Changes & Deprecations](/changelog/upgrade-guidance/breaking-changes) — understand critical changes that impact your code.
+- [Upgrade Checklist](/changelog/upgrade-guidance/upgrade-checklist) — practical steps for seamless migration.
+
+These linked resources help you transition effectively between versions and leverage PostHog Go's capabilities confidently.
+
+---
+
+## Summary
+
+- The page archives PostHog Go client versions in a clear, chronological manner.
+- Designed to assist users in referencing version-specific changes, troubleshooting, and upgrade planning.
+- Focuses on user needs: detecting relevant fixes, features, and warning about incompatible upgrades.
+
+
+---
+
+## Additional Resources
+
+- For a broad understanding of PostHog Go’s features and integration, see [Core Features at a Glance](/overview/features-and-integration/feature-highlights).
+- To grasp overall client usage and core workflows, review [What is PostHog Go?](/overview/introduction-and-value/what-is-posthog-go).
+- For executing feature flagging effectively, refer to [Using Feature Flags](/guides/core-workflows/using-feature-flags).
+
+
+## Final Tips
+
+Leverage this page as your primary reference for version histories. When upgrading or encountering irregularities, always consult the previous versions documentation to understand the context behind each release. This will empower you to maintain stable and secure client integrations.
+
+
+---
+
+## Example Code from the Source Reference
+
+Here is a snippet illustrating the version control constant defined in the client, important for version referencing:
+
+```go
+package posthog
+
+import "flag"
+
+// Version of the client.
+const Version = "1.6.12"
+
+// getVersion returns the client version, overridden during tests
+func getVersion() string {
+    if flag.Lookup("test.v") != nil {
+        return "1.0.0"
+    }
+    return Version
+}
+```
+
+This shows how the version constant is maintained and can be overridden in testing scenarios, reflecting the versioning practices documented here.
