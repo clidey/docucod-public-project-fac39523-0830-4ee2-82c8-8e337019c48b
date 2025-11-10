@@ -1,0 +1,251 @@
+---
+title: "Error & Exception Capture"
+description: "How to programmatically report application errors and exceptions to PostHog, including stack traces, message schemas, and default helpers for exception reporting."
+---
+
+# Error & Exception Capture
+
+Efficiently capturing and reporting application errors is vital for monitoring and improving your application's reliability. This guide teaches you how to programmatically report errors and exceptions to PostHog from your Go applications using the PostHog Go client. You'll learn about reporting stack traces, message structures, and how to leverage built-in helpers that simplify exception reporting.
+
+---
+
+## Overview
+
+PostHog's error and exception capture provides a powerful way to collect, group, and analyze application errors directly in your analytics pipeline. Rather than just sending raw logs, this feature allows you to send rich exception data, including:
+
+- Timestamps and distinctive user IDs
+- Structured exception lists with type and message
+- Stack traces with file, function name, and line information
+
+By integrating PostHog’s exception capture, you gain actionable insights into the root causes of errors and can link them back to user sessions and behaviors.
+
+---
+
+## How Error & Exception Capture Fits In
+
+This functionality complements core event capture and feature flags by providing error visibility in the same analytics environment. It bridges logging and observability with event-driven analytics.
+
+> For a broader integration context, see [Integrating with the PostHog Platform](https://posthog.com/docs/api-reference/overview/features-and-integration/integration-with-posthog).
+
+---
+
+## Getting Started with Exception Capture
+
+### Basic Exception Object
+
+You create an `Exception` object encapsulating a snapshot of your error, including a list of exception items (usually one) and optionally stack trace data, then enqueue it via the client.
+
+```go
+exception := posthog.Exception{
+    DistinctId: "user-123",
+    Timestamp:  time.Now(),
+    ExceptionList: []posthog.ExceptionItem{
+        {
+            Type:  "RuntimeError",
+            Value: "Invalid user input",
+            Stacktrace: posthog.Stacktrace{
+                Type: "raw",
+                Frames: []posthog.StackFrame{
+                    {
+                        Filename: "/app/main.go",
+                        Function: "main.processInput",
+                        Lineno:   42,
+                        InApp:    true,
+                        Platform: "go",
+                    },
+                },
+            },
+        },
+    },
+}
+
+if err := client.Enqueue(exception); err != nil {
+    log.Fatal(err)
+}
+```
+
+> This sends the structured error event to PostHog for aggregation and analysis.
+
+### Using the Default Exception Helper
+
+Create an exception with common fields like timestamp, user distinct ID, type, and description conveniently:
+
+```go
+exception := posthog.NewDefaultException(
+    time.Now(),
+    "user-123",
+    "RuntimeError",
+    "Invalid user input",
+)
+
+if err := client.Enqueue(exception); err != nil {
+    log.Fatalf("failed to enqueue exception: %v", err)
+}
+```
+
+This default helper populates the exception struct with typical fields needed to represent an error event.
+
+---
+
+## Capturing Errors from Logging Integration
+
+### SlogCaptureHandler
+PostHog Go provides seamless integration with Go's `log/slog` package via `SlogCaptureHandler`. It wraps your existing log handler and auto-captures qualifying log records as exceptions sent to PostHog.
+
+```go
+baseHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})
+posthogHandler := posthog.NewSlogCaptureHandler(baseHandler, client,
+  posthog.WithDistinctIDFn(func(ctx context.Context, r slog.Record) string {
+    // Pull user ID or device ID from context or record
+    return "my-user-id"
+  }),
+  posthog.WithMinCaptureLevel(slog.LevelWarn), // capture warn or higher
+)
+
+logger := slog.New(posthogHandler)
+
+logger.Warn("Something went wrong", "error", fmt.Errorf("database unreachable"))
+```
+
+#### How it Works
+
+- **Forwarding:** The wrapped handler still outputs logs normally.
+- **Capture Conditions:** Any log record at or above the configured minimum level (default `Warn`) with a non-empty distinct ID is captured.
+- **Exception Details:** It extracts the error description from log attributes (keys like `error` or `err`), assembles a stack trace, and constructs an exception.
+
+This approach seamlessly blends error reporting with your logging without disrupting your existing workflows.
+
+### Configuration Options
+
+Use these options with `NewSlogCaptureHandler` to tailor behavior:
+
+| Option                     | Purpose                                          | Default Value           |
+|----------------------------|-------------------------------------------------|-------------------------|
+| `WithMinCaptureLevel(level)`      | Minimum log level to capture as exception       | `slog.LevelWarn`         |
+| `WithDistinctIDFn(fn)`             | Function to extract distinct user/device ID     | Returns empty string      |
+| `WithFingerprintFn(fn)`            | Custom function to define grouping fingerprint   | Uses default PostHog logic |
+| `WithSkip(n)`                     | Number of stack frames to skip when capturing     | 5                       |
+| `WithStackTraceExtractor(extractor)` | Replace default stack trace extraction            | Uses built-in extractor   |
+| `WithDescriptionExtractor(extractor)` | Customize how an error description is extracted  | Searches common keys      |
+
+---
+
+## Error Description Extraction
+
+The default extractor `ErrorExtractor` looks for error values inside log record attributes with typical keys like `error` or `err` (case-insensitive).
+
+- Returns the first found error message.
+- Falls back to a placeholder like `'<no linked error>'` if no error is found.
+
+You can customize the keys or the fallback text by creating a custom `ErrorExtractor`.
+
+---
+
+## Stack Trace Capture
+
+Exceptions include stack traces built from Go runtime information. The stack trace contains:
+
+- File name
+- Function name
+- Line number
+- Platform (`"go"`)
+- `in_app` flag indicating whether it's part of your app
+
+The default extractor skips internal framework frames to provide a clean relevant trace.
+
+---
+
+## Practical Examples
+
+### Example: Enqueuing an Exception Manually
+
+```go
+package main
+
+import (
+  "fmt"
+  "time"
+  "github.com/posthog/posthog-go"
+)
+
+func main() {
+  client, err := posthog.NewWithConfig("phc_your_project_api_key", posthog.Config{})
+  if err != nil {
+    panic(err)
+  }
+  defer client.Close()
+
+  exc := posthog.NewDefaultException(time.Now(), "user-456", "NullPointer", "Accessed nil pointer")
+
+  if err := client.Enqueue(exc); err != nil {
+    fmt.Println("Failed to send exception:", err)
+  }
+}
+```
+
+### Example: Integrating with Go's `log/slog`
+
+```go
+package main
+
+import (
+  "context"
+  "fmt"
+  "log/slog"
+  "os"
+  "time"
+
+  "github.com/posthog/posthog-go"
+)
+
+func main() {
+  client, _ := posthog.NewWithConfig("phc_your_project_api_key", posthog.Config{})
+  defer client.Close()
+
+  baseHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})
+  handler := posthog.NewSlogCaptureHandler(baseHandler, client,
+    posthog.WithDistinctIDFn(func(ctx context.Context, r slog.Record) string {
+      return "user-789"
+    }),
+  )
+
+  logger := slog.New(handler)
+
+  logger.Warn("Error connecting to database", "error", fmt.Errorf("timeout"))
+  time.Sleep(1 * time.Second) // Allow send
+}
+```
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+- **No Exceptions Captured:**
+  - Ensure your minimum capture level allows the log level you want to capture (default is `Warn`).
+  - Verify the `distinctID` extraction function returns a non-empty string.
+
+- **No Error Description:**
+  - Confirm that error attributes use keys like `error` or `err`.
+  - Customize the `DescriptionExtractor` if you use different keys or structure.
+
+- **Dropped Events or Enqueue Failures:**
+  - Check if your PostHog client is correctly initialized and connected.
+  - Look for network issues or authentication problems.
+
+### Best Practices
+
+- Attach contextual information including user identifiers via the `distinctID` function for better grouping.
+- Keep the logging and error capture non-blocking to avoid impacting application performance.
+- Use custom fingerprints if you want to group exceptions differently than PostHog’s defaults.
+
+---
+
+## Further Resources
+
+- [Core Event Capture API Reference](/api-reference/core-entities/capture-events)
+- [Logging Integration & Observability](/api-reference/advanced-usage-errors/logging-integration)
+- [PostHog Go Client Overview & Quickstart](/overview/introduction-and-value/what-is-posthog-go)
+
+---
