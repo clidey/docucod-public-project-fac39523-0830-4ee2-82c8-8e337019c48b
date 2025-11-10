@@ -1,0 +1,179 @@
+---
+title: "User & Group Identification"
+description: "Explains how to identify individual users and groups, attach properties, and manage context for advanced segmentation. Includes field reference, supported operations, and sample use cases."
+---
+
+# User & Group Identification
+
+Understanding who your users are and how they relate to groups is fundamental to unlocking advanced segmentation, targeted feature delivery, and insightful analytics. This section explains how to identify individual users and groups within your Go applications using the PostHog Go client. You will learn how to attach meaningful properties, manage identities, and structure your data for maximum impact.
+
+---
+
+## Why Identify Users and Groups?
+
+Identifying users and groups allows you to:
+
+- Personalize experiences based on user identity and group attributes.
+- Segment analytics data for deeper insights.
+- Target feature flags and experiments precisely.
+- Maintain continuity across sessions and devices.
+
+By correctly identifying entities, you empower your analytics and feature flag systems to deliver accurate results that drive impactful decisions.
+
+---
+
+## Core Concepts
+
+- **User Identification (Distinct ID)**: A unique identifier for an individual user, typically an email, UUID, or other stable identifier.
+- **Group Identification**: Groups represent logical collections of users, such as organizations, teams, or companies.
+- **Properties**: Key-value pairs describing attributes of users or groups (e.g., email, region, plan tier).
+
+---
+
+## How to Identify Users
+
+The PostHog Go client lets you associate data with a unique user identifier and enrich that identity with properties.
+
+### Identifying a User
+
+To identify a user, send an `$identify` event with a distinct ID and optional user properties.
+
+**Example:**
+
+```go
+client.Identify("user_12345", map[string]interface{}{
+    "email": "user@example.com",
+    "plan": "premium",
+    "signup_date": "2023-05-01",
+})
+```
+
+### Key Points:
+
+- The `distinct_id` is a mandatory unique string identifying the user.
+- Passing properties enriches the user profile for segmentation and targeting.
+- Call `Identify` before tracking events to ensure events are attributed to the correct user.
+
+---
+
+## How to Identify Groups
+
+Groups represent collections of users and allow aggregation across shared contexts like organizations or projects.
+
+### Group Identification Syntax
+
+You identify groups by specifying the group type and group key along with optional group properties.
+
+**Example:**
+
+```go
+client.GroupIdentify("organization", "org_123", map[string]interface{}{
+    "name": "Acme Corp",
+    "industry": "ecommerce",
+})
+```
+
+### Explanation:
+
+- `groupType` distinguishes the category of the group (e.g., organization, team).
+- `groupKey` uniquely identifies the specific group (e.g., organization ID).
+- Group properties provide metadata useful for filtering and segmentation.
+
+---
+
+## Attaching Users to Groups
+
+Combine user identification with group identification to link users to groups:
+
+```go
+client.Identify("user_12345", map[string]interface{}{})
+client.GroupIdentify("organization", "org_123", map[string]interface{}{})
+```
+
+This enables you to analyze data and flag evaluations based on group membership.
+
+---
+
+## Managing Context and Properties
+
+You can update user or group properties at any time to reflect changes or enrich profiles. Properties should be stable and meaningful to maintain data integrity.
+
+**Example updating user properties:**
+
+```go
+client.Identify("user_12345", map[string]interface{}{
+    "subscription": "enterprise",
+    "last_active": "2024-06-10",
+})
+```
+
+---
+
+## Supported Event Types Related to Identification
+
+- `$identify`: Associates events with a user.
+- `$groupidentify`: Associates events with a group, handled internally by `GroupIdentify` method.
+
+The client automatically sends these special events when you invoke the respective identify or group identify functions.
+
+---
+
+## Best Practices
+
+- Always identify users as soon as their identity is known (e.g., after login).
+- Use stable and unique identifiers like emails or UUIDs as `distinct_id`.
+- Regularly update user and group properties to maintain accurate profiles.
+- Keep group types consistent across your application.
+- Combine user and group identification for powerful segmentation and targeting.
+
+---
+
+## Common Pitfalls and Troubleshooting
+
+| Issue                                         | Solution                                               |
+|-----------------------------------------------|--------------------------------------------------------|
+| Events are not attributed to known users      | Ensure `Identify` is called before tracking events.    |
+| Group properties not visible or updated        | Confirm `GroupIdentify` is used with correct group type and key. |
+| Duplicate user records                         | Use consistent `distinct_id` across sessions and devices. |
+| Missing group data for targeted analysis       | Verify all users are linked to groups appropriately.   |
+
+---
+
+## Sample Workflow: Identifying a User with an Organization
+
+1. User logs in, you obtain their unique user ID and organization ID.
+2. Call `Identify` with the user's ID and properties.
+3. Call `GroupIdentify` with the group type (e.g., "organization") and group ID.
+4. Track events for the user; events will now carry user and group context.
+
+```go
+client.Identify("user_98765", map[string]interface{}{"email": "alice@example.com"})
+client.GroupIdentify("organization", "org_456", map[string]interface{}{"name": "Globex Corp"})
+client.Capture("page_view", map[string]interface{}{"page": "dashboard"})
+```
+
+This ensures your analytics and feature flags can deliver tailored experiences and precise insights.
+
+---
+
+## Field Reference
+
+| Field             | Description                                 | Type           | Required |
+|-------------------|---------------------------------------------|----------------|----------|
+| distinct_id       | Unique user identifier                      | string         | Yes      |
+| properties        | Additional user or group metadata           | map[string]interface{} | Optional |
+| group_type        | Category of group (e.g., organization)      | string         | Required for groups |
+| group_key         | Unique group ID                              | string         | Required for groups |
+
+---
+
+## Related Documentation
+
+- [Capturing Events](../core-entities/capture-events) — Learn to send user actions and event data.
+- [Aliases & Context Linking](../core-entities/aliasing-context-linking) — Handle user identity changes and link contexts.
+- [Feature Flags & Remote Config](../core-entities/feature-flags) — Deliver targeted features based on user and group data.
+- [Integration with PostHog Platform](../../overview/features-and-integration/integration-with-posthog) — How PostHog processes identification data.
+
+---
+
+<Source url="https://github.com/PostHog/posthog-go" branch="main" paths={[{ path: "client.go", range: "1-100" }, { path: "group_identify.go", range: "1-50" }]} />
