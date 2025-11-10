@@ -1,0 +1,112 @@
+---
+title: "Getting Started FAQ"
+description: "Answers to the most common questions and clarifications for new adopters, including where to find help if you get stuck. Links directly to further documentation and PostHog’s community resources."
+---
+
+# Getting Started FAQ
+
+Welcome to the PostHog Go client Getting Started FAQ—a carefully curated resource addressing the most common questions and clarifications new users encounter when adopting PostHog Go. Whether you're installing for the first time, integrating feature flags, or troubleshooting unexpected results, this guide points you toward practical solutions and useful documentation.
+
+---
+
+## 1. What is PostHog Go and where do I start?
+
+PostHog Go is an official client library for integrating PostHog’s analytics and feature flag functionality directly into your Go applications. It empowers backend systems to capture analytics events and evaluate feature flags to drive experiments and user targeting.
+
+### Getting started steps:
+- Review the [What is PostHog Go?](https://posthog.com/docs/overview/introduction-and-value/what-is-posthog-go) page for an overview.
+- Follow the [Quickstart & Example Workflows](https://posthog.com/docs/overview/features-and-integration/quickstart-and-examples) guide to set up your first integration.
+
+
+## 2. Where can I find installation and setup instructions?
+
+Your installation and configuration journey should begin here:
+
+- **System Prerequisites:** Check hardware and OS requirements on [System Requirements](https://posthog.com/docs/getting-started/prerequisites_installation/system_requirements).
+- **Installing the client:** Follow the comprehensive steps at [Installing PostHog Go](https://posthog.com/docs/getting-started/prerequisites_installation/installation).
+- **Initial configuration:** Learn how to configure the client, API keys, and connection details in [Configuration Setup](https://posthog.com/docs/getting-started/configuration_first_run/configuration_setup).
+
+
+## 3. How do I evaluate feature flags with PostHog Go?
+
+Feature flags control application behavior dynamically. PostHog Go supports various flag formats including simple boolean flags, multivariate flags, and complex rollout conditions.
+
+- Explore the [Using Feature Flags](https://posthog.com/docs/guides/core-workflows/using-feature-flags) guide for conceptual understanding and practical examples.
+- Understand flag filters, rollout percentages, and payloads by examining your `decide` response (see the `fixtures/test-decide-v4.json` example). 
+
+#### Practical Tips:
+- Flags can have complex targeting rules based on user or group properties.
+- Use `enabled` boolean and `variant` string to determine flag status and behavior.
+- Payloads can contain JSON data for richer control.
+- Fallback values are applied when no match conditions are found.
+
+
+## 4. What common issues might I face during setup or usage?
+
+### Installation Troubleshooting
+- Verify your Go environment meets the minimum version requirements.
+- Ensure network connectivity to PostHog endpoints.
+- Confirm API key validity and permissions.
+
+### Feature Flag Issues
+- Flags marked as `enabled: false` are inactive.
+- Rollout percentage of 0 means the flag is effectively disabled for everyone.
+- Property filters need correct user attributes set for targeting to succeed.
+
+For detailed troubleshooting, visit [Troubleshooting Setup & Installation](https://posthog.com/docs/getting-started/troubleshooting_common_issues/troubleshooting_installation).
+
+
+## 5. How do I validate my integration is working?
+
+Validation ensures your events are sent and feature flags evaluate as expected.
+
+### Validation steps:
+1. Initialize the client with correct API keys.
+2. Capture a test event and verify it appears in PostHog dashboard.
+3. Fetch feature flags and confirm flag states match expectations.
+4. Use logging and error capture to detect issues.
+
+Refer to [Validating Your Integration](https://posthog.com/docs/getting-started/configuration_first_run/validating_integration) for a structured validation workflow.
+
+
+## 6. Where can I get further help and community support?
+
+When you encounter questions beyond this FAQ:
+
+- Visit the [PostHog Community Forum](https://posthog.com/community) to ask questions and learn from other users.
+- Browse official GitHub repositories like [posthog-go](https://github.com/PostHog/posthog-go) for source code, issues, and examples.
+- Review the entire [PostHog Go API Reference](https://posthog.com/docs/api-reference/core-entities) for detailed method explanations.
+
+
+---
+## Additional Resources
+
+- [Integrating with the PostHog Platform](https://posthog.com/docs/overview/features-and-integration/integration-with-posthog) — How PostHog Go fits in the broader PostHog ecosystem.
+- [Capturing Events](https://posthog.com/docs/guides/core-workflows/capturing-events) — Capture and send analytics data.
+- [User Identification & Aliasing](https://posthog.com/docs/guides/core-workflows/user-identification-aliasing) — Manage user identities for accurate analytics.
+
+
+---
+## Quick FAQ Summary
+
+| Question                                  | Answer & Link                                       |
+|-------------------------------------------|----------------------------------------------------|
+| What is PostHog Go?                      | [Overview](https://posthog.com/docs/overview/introduction-and-value/what-is-posthog-go) |
+| How do I install it?                     | [Installation Guide](https://posthog.com/docs/getting-started/prerequisites_installation/installation) |
+| How do I use feature flags?              | [Feature Flags Guide](https://posthog.com/docs/guides/core-workflows/using-feature-flags) |
+| How to troubleshoot setup problems?     | [Troubleshooting](https://posthog.com/docs/getting-started/troubleshooting_common_issues/troubleshooting_installation) |
+| Where to get community support?          | [PostHog Community](https://posthog.com/community) |
+
+
+---
+
+If you are new to PostHog Go, start this FAQ early and refer back often to solve common adoption hurdles quickly. Welcome to a powerful analytics and experimentation platform driving your backend innovation.
+
+
+<Check>
+Remember to keep your PostHog Go client updated regularly to benefit from the latest features and bug fixes.
+</Check>
+
+<Note>
+If you hit an unresolved issue, check GitHub Issues in the repository [posthog-go](https://github.com/PostHog/posthog-go/issues) for known bugs and fixes.
+</Note>
