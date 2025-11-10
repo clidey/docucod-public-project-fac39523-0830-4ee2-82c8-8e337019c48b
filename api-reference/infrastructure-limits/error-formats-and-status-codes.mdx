@@ -1,0 +1,218 @@
+---
+title: "Error Formats & Status Codes"
+description: "Reference for all error responses, standard and custom error codes, and strategies for handling failures and retries. Sample failure payloads and common troubleshooting scenarios are included."
+---
+
+# Error Formats & Status Codes
+
+Comprehensive reference documentation for errors you may encounter when interacting with the PostHog Go client and the PostHog API. This page details the structure of error responses, enumerates standard and custom error codes, outlines retry and failure handling strategies, and illustrates common troubleshooting scenarios with sample payloads.
+
+---
+
+## 1. Understanding Error Responses
+
+When your integration encounters an issue, the PostHog Go client or the PostHog backend will return error information formatted consistently to help you diagnose and resolve the problem promptly.
+
+### Common Error Response Structure
+
+The typical error response is a JSON object containing descriptive fields that explain the nature and source of the failure.
+
+```json
+{
+  "type": "error",
+  "status_code": 400,
+  "error_code": "bad_request",
+  "message": "Invalid payload: missing required field 'distinct_id'",
+  "details": {
+    "field": "distinct_id"
+  }
+}
+```
+
+| Field        | Description                                              |
+|--------------|----------------------------------------------------------|
+| `type`       | The type of response, generally "error"                |
+| `status_code`| HTTP status code corresponding to the error              |
+| `error_code` | Machine-readable error code identifier                    |
+| `message`    | Human-readable explanation of the error                   |
+| `details`    | Object with additional context (optional)                |
+
+<Tip>
+Always parse the `status_code` and `error_code` fields programmatically to implement precise error handling and retries.
+</Tip>
+
+---
+
+## 2. Standard HTTP Status Codes & Meanings
+
+The PostHog API uses standard HTTP status codes reflecting the outcome of requests. Your client should be able to interpret these to take appropriate actions.
+
+| Status Code | Meaning                  | Recommended Action                                        |
+|-------------|--------------------------|----------------------------------------------------------|
+| 200-299     | Success                  | Proceed normally                                         |
+| 400         | Bad Request              | Check and correct request payload                         |
+| 401         | Unauthorized             | Verify and refresh API keys/authentication                |
+| 403         | Forbidden                | Insufficient permissions, verify roles and scopes        |
+| 404         | Not Found                | Check endpoint path or resource identifier                |
+| 408         | Request Timeout          | Retry after a brief delay                                 |
+| 429         | Rate Limited             | Apply exponential backoff, adhere to rate limits          |
+| 500-599     | Server Error             | Retry after delay, possibly notify PostHog support        |
+
+---
+
+## 3. PostHog Specific Error Codes
+
+These error codes appear in the `error_code` field and provide insight into common PostHog-specific error cases.
+
+| Error Code          | Description                                    | Cause & Resolution                                   |
+|---------------------|------------------------------------------------|-----------------------------------------------------|
+| `bad_request`       | Request payload invalid                        | Correct the payload structure and required fields.  |
+| `missing_api_key`   | API key header missing                         | Include valid API key in request headers.            |
+| `invalid_api_key`   | API key invalid or revoked                     | Obtain and use a valid current API key.              |
+| `quota_exceeded`    | Event ingestion quota or rate limit exceeded  | Reduce request volume or contact administrator       |
+| `payload_too_large` | Submitted data exceeds allowed size           | Reduce batch size or event payload size               |
+| `deprecated`        | API endpoint or parameter is deprecated       | Update usage to supported versions/endpoints         |
+
+---
+
+## 4. Error Handling Strategies
+
+Successful error handling ensures your integration remains resilient and transparent in the face of network or data issues.
+
+### Best Practices
+
+- **Validate payloads** before sending events to avoid `bad_request` errors.
+- **Handle 401 and 403 errors** by refreshing or confirming API keys and permissions.
+- **Implement retry logic** with exponential backoff for transient errors like 408, 429, and 5xx.
+- **Monitor quota usage** to prevent `quota_exceeded` responses.
+- **Use batch size configuration** in the Go client (`Config.BatchSize`) to control payload size.
+
+### Retry Logic Example
+
+Retry only idempotent requests such as event captures with unique UUIDs to avoid duplicates.
+
+```go
+// Example snippet for exponential backoff retry
+var maxRetries = 5
+var backoff = time.Second
+for i := 0; i < maxRetries; i++ {
+    err := client.Enqueue(event)
+    if err == nil {
+        break
+    }
+    if shouldRetry(err) {
+        time.Sleep(backoff)
+        backoff *= 2
+        continue
+    }
+    // For non-retriable errors, handle or log and break
+    break
+}
+```
+
+<Tip>
+Implement backoff with jitter to reduce retry storms when many clients hit rate limits simultaneously.
+</Tip>
+
+---
+
+## 5. Sample Failure Payloads
+
+Identifying the exact error payloads your client may receive helps you prepare parsers and diagnostics.
+
+### Example: Payload Missing Required Field
+
+```json
+{
+  "type": "error",
+  "status_code": 400,
+  "error_code": "bad_request",
+  "message": "The 'distinct_id' field is required.",
+  "details": {
+    "field": "distinct_id"
+  }
+}
+```
+
+### Example: Rate Limit Exceeded
+
+```json
+{
+  "type": "error",
+  "status_code": 429,
+  "error_code": "quota_exceeded",
+  "message": "Request quota exceeded. Retry after some time."
+}
+```
+
+### Example: Invalid API Key
+
+```json
+{
+  "type": "error",
+  "status_code": 401,
+  "error_code": "invalid_api_key",
+  "message": "The provided API key is invalid or revoked."
+}
+```
+
+---
+
+## 6. Troubleshooting Common Scenarios
+
+### Scenario: Events Not Appearing in Dashboard
+
+- Confirm API key is correct and active.
+- Verify the event payload includes mandatory fields like `distinct_id`.
+- Check for rate limit errors (HTTP 429).
+- Use verbose client logging to inspect outgoing request payloads and responses.
+
+### Scenario: Frequent 400 Bad Request Errors
+
+- Validate schema: events must include required fields (e.g., `distinct_id`, `event`).
+- Confirm property types (e.g., strings, booleans) conform to expectations.
+- Remove unsupported or null properties.
+
+### Scenario: Authentication Failures
+
+- Confirm that the API key is included in the client configuration.
+- Check that the API key has correct permissions for the project.
+
+<Tip>
+Enable verbose mode in client configuration (`Verbose: true`) during development to receive detailed error logs.
+</Tip>
+
+---
+
+## 7. Summary of Error Codes and Recommended Actions
+
+| Code               | HTTP Status | Action Summary                              |
+|--------------------|-------------|---------------------------------------------|
+| `bad_request`       | 400         | Fix request structure                       |
+| `missing_api_key`   | 401         | Provide API key                             |
+| `invalid_api_key`   | 401         | Replace with valid API key                  |
+| `quota_exceeded`    | 429         | Reduce request rate, implement backoff     |
+| `payload_too_large` | 413         | Use smaller batches or simpler events      |
+| `deprecated`        | Varies      | Update to supported API versions            |
+
+---
+
+## 8. Related Documentation
+
+- [Client Initialization & Authentication](/api-reference/core-entities/client-initialization-auth) — How to configure API keys and authentication handling.
+- [Event Capture](/api-reference/core-entities/capture-events) — Best practices on sending properly formatted event data.
+- [Rate Limiting & Quotas](/api-reference/infrastructure-limits/rate-limiting-quotas) — Details on quotas and how to avoid hitting them.
+- [Troubleshooting Setup & Installation](/getting_started/troubleshooting_common_issues/troubleshooting_installation) — Common setup errors and fixes.
+
+---
+
+## 9. Practical Tips
+
+- Always validate the event data schema locally before sending to prevent common mistakes.
+- Use UUIDs for event deduplication to make retries safe.
+- Monitor your application logs for repeated server errors and respond quickly.
+- In high-throughput environments, adjust batching parameters and handle `quota_exceeded` errors gracefully.
+
+With these guidelines and the detailed reference above, you can confidently handle errors and statuses while integrating PostHog Go into your backend systems, ensuring robust and reliable analytics data collection.
+
+---
