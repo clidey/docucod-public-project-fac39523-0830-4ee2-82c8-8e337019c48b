@@ -1,0 +1,139 @@
+---
+title: "Key Concepts & Terminology"
+description: "Defines the essential terms users encounter with PostHog Go, such as "event capture", "distinct ID", "feature flags", "identify", "grouping", and "aliasing". Summarizes how these concepts map to the library’s API and Go objects, and why they matter for analytics and experimentation workflows."
+---
+
+# Key Concepts & Terminology
+
+Welcome to the foundational guide for understanding the essential terms and concepts you will encounter when working with PostHog Go. This page distills the core language of the library to help you confidently navigate its API and apply its features effectively in your Go applications.
+
+---
+
+## Why These Concepts Matter
+
+Analytics and experimentation depend on a clear understanding of data tracking and feature management vocabulary. PostHog Go’s terminology is both intuitive and tightly aligned with its API objects, enabling you to capture meaningful user interactions, evaluate dynamic feature flags, and link users and groups consistently.
+
+Mastering these terms empowers you to unlock PostHog Go’s full value: building powerful backend analytics, driving feature rollouts, and orchestrating user and group identities with precision.
+
+---
+
+## Core Terminology Explained
+
+### Event Capture
+The process of recording actions, interactions, or occurrences within your application.
+
+- **What it means:** Anything your users do or your system events trigger can be captured as an event.
+- **Why it matters:** Events fuel your analytics insights and power experimentation.
+
+In PostHog Go, event capture is performed by invoking `Client.Capture()`, where you specify the event name and contextual properties.
+
+### Distinct ID
+A unique identifier for an individual user or entity.
+
+- **What it means:** This string or number identifies *who* performed the event.
+- **Why it matters:** Linking events to distinct IDs lets you track user behavior over time.
+
+Set your distinct ID when you initialize the client or via the `Identify` method to unify user data.
+
+### Identify
+The action of associating traits or metadata with a distinct user ID.
+
+- **What it means:** You enrich user profiles with attributes like email, signup date, or subscription tier.
+- **Why it matters:** Identification enables personalized segmentation and targeting across analytics and feature flags.
+
+Use `Client.Identify()` to send an identify call that updates or creates a user profile.
+
+### Feature Flags
+Conditional controls that enable or disable features dynamically based on targeting rules.
+
+- **What it means:** Feature flags determine whether your code delivers new behavior to a given user or group.
+- **Why it matters:** They allow safe experimentation and progressive feature rollout without redeploying code.
+
+Use `Client.IsFeatureEnabled()` or `Client.GetFeatureFlag()` to check feature flag states within your Go app.
+
+### Grouping
+Grouping refers to organizing users into logical collections like companies or teams.
+
+- **What it means:** Groups aggregate users around shared properties or behaviors.
+- **Why it matters:** Groups enable targeted feature delivery and analytics at a collective level beyond individual users.
+
+Groups integrate into feature flags through group properties and aggregation indices used for rollout targeting.
+
+### Aliasing
+A technique to merge or link multiple distinct IDs representing the same user over time.
+
+- **What it means:** When users change identifiers (e.g., anonymous to logged-in), aliasing connects those identities.
+- **Why it matters:** It preserves the continuity of user history and analytic data.
+
+PostHog Go supports aliasing so you can maintain a consistent user narrative.
+
+---
+
+## How These Concepts Map to PostHog Go API and Objects
+
+| Concept        | Key API Methods                   | Go Object / Parameter             | Usage Example                         |
+|----------------|---------------------------------|---------------------------------|-------------------------------------|
+| Event Capture  | `Capture()`                     | `Event` struct                  | `client.Capture(ctx, "button_clicked", properties)` |
+| Distinct ID    | `SetDistinctID()`, part of `Capture` | `distinctID string`           | `client.Capture(ctx, "pageview", "user_123", props)` |
+| Identify       | `Identify()`                    | `UserProperties`                | `client.Identify(ctx, "user_123", traits)`            |
+| Feature Flags  | `IsFeatureEnabled()`, `GetFeatureFlag()` | `FeatureFlag` struct           | `enabled, _ := client.IsFeatureEnabled(ctx, "beta-feature")` |
+| Grouping       | `IdentifyGroup()`               | `GroupProperties`               | `client.IdentifyGroup(ctx, "company", "company_456", props)` |
+| Aliasing       | `Alias()`                      | `alias string`                  | `client.Alias(ctx, "anonymous_id", "user_123")`     |
+
+---
+
+## Putting It All Together
+
+Here is a typical flow showcasing how these concepts come to life inside a Go backend:
+
+1. **Identify a user** when they log in, associating traits like email and subscription.
+2. **Capture events** as the user interacts with your application.
+3. Query **feature flags** dynamically to enable beta features only for a test group.
+4. Use **grouping** to attribute usage and feature flags to the company owning the user.
+5. Create **aliases** to merge anonymous and authenticated user sessions for a continuous record.
+
+This flow enables seamless analytics, controlled rollouts, and robust experimentation.
+
+---
+
+## Best Practices & Tips
+
+- **Always use a consistent distinct ID** for each user to ensure event continuity.
+- **Use Identify calls thoughtfully** to update user metadata without overwhelming the backend.
+- For **feature flags, retrieve flag states close to where the feature logic applies** to keep delivery reliable and responsive.
+- Leverage **grouping** for organizational-level insights and gradual rollout strategies.
+- Implement **aliasing** whenever anonymous users transition to signed-in states to maintain history.
+
+---
+
+## Common Pitfalls
+
+<AccordionGroup title="Common Pitfalls and How to Avoid Them">
+<Accordion title="Misusing distinct IDs">
+Using multiple distinct IDs for the same user can fragment data. Always unify IDs via aliasing or consistent assignment.
+</Accordion>
+<Accordion title="Ignoring Identify calls">
+Failing to call Identify means missing rich user context that enhances segmentation and targeted feature flags.
+</Accordion>
+<Accordion title="Checking feature flags too infrequently">
+Delaying or batching feature flag checks can cause outdated or inconsistent user experiences.
+</Accordion>
+<Accordion title="Neglecting group properties">
+Not utilizing groups for companies or teams limits the ability to analyze or target behavior at the collective level.
+</Accordion>
+</AccordionGroup>
+
+---
+
+## Summary
+
+Understanding PostHog Go’s key concepts and terminology equips you to design event tracking and feature experimentation workflows that align tightly with your application’s goals and PostHog’s analytics framework. Mastering these terms enables reliable data capture, sharp experimentation, and actionable insights.
+
+For a deeper dive and examples, explore the related pages:
+
+- [What is PostHog Go?](/overview/introduction-and-value/what-is-posthog-go)
+- [Capturing Events](/guides/core-workflows/capturing-events)
+- [User Identification & Aliasing](/guides/core-workflows/user-identification-aliasing)
+- [Using Feature Flags](/guides/core-workflows/using-feature-flags)
+
+Continue your journey with these foundational concepts firmly in hand.
