@@ -1,0 +1,104 @@
+---
+title: "Target Audience & Use Cases"
+description: "Defines the primary users of the library—including backend Go engineers and product developers—and summarizes the most common scenarios: tracking events, A/B testing via feature flags, capturing errors, and seamlessly integrating with the broader PostHog platform for observability and experimentation."
+---
+
+# Target Audience & Use Cases
+
+## Understanding Who Benefits Most from PostHog Go
+
+PostHog Go is crafted primarily for backend Go engineers and product developers who want to embed powerful analytics, experimentation, and feature flag capabilities directly into their Go applications and services. This library empowers teams to harness backend-driven insights, execute controlled rollouts, and capture critical user and system events, all with seamless integration into the wider PostHog platform.
+
+---
+
+## Who Should Use PostHog Go?
+
+- **Backend Go Engineers:** Developers building APIs, microservices, or backend systems that need to emit events, evaluate feature flags, and capture errors server-side.
+- **Product Developers and Managers:** Teams looking to run A/B tests, toggle features safely in production, and connect backend user behavior with product experimentation insights.
+- **Data and Analytics Professionals:** Users who require reliable, real-time backend event data and feature flag evaluations to inform meaningful analysis.
+
+<Check>
+By integrating PostHog Go, these users can gain precise control over feature deployment and gain detailed event data with minimal overhead.
+</Check>
+
+---
+
+## Common Use Cases
+
+### 1. Tracking Backend Events
+
+PostHog Go enables the automatic capture and reporting of backend events such as user actions, API calls, or system status changes. This helps teams unify frontend and backend telemetry, giving a holistic view of user interactions and application health.
+
+**Example Scenario:**
+
+A Go backend service records a "user_login" event every time a user successfully signs in, including metadata like user ID and location, enabling accurate funnel analysis later.
+
+```go
+posthogClient.Capture(
+  posthog.Capture{
+    DistinctId: "user_1234",
+    Event:      "user_login",
+    Properties: map[string]interface{}{"location": "USA"},
+  },
+)
+```
+
+---
+
+### 2. Executing Safe Feature Rollouts with Feature Flags
+
+By evaluating feature flags server-side, backend services can control which users or segments see new features, supporting gradual rollouts, targeted experiments, and instant rollbacks with no redeployment.
+
+**Practical Example:**
+
+A backend service consults PostHog Go to check if the "beta-feature" flag is enabled for a user from the USA before activating new functionality.
+
+```go
+enabled, err := posthogClient.IsFeatureEnabled("beta-feature", userContext)
+if err == nil && enabled {
+  // Activate beta feature logic
+}
+```
+
+---
+
+### 3. Capturing and Reporting Errors
+
+PostHog Go integrates error capture directly into your backend, enabling you to monitor exceptions or system issues alongside user context, facilitating faster diagnosis and response.
+
+---
+
+### 4. Integrating Seamlessly with the PostHog Platform
+
+PostHog Go acts as a conduit between your Go backend and the PostHog platform, ensuring all analytics events, feature evaluations, and error logs are collected in a centralized system for experimentation, analysis, and insights.
+
+This integration means backend events and flags are part of a unified ecosystem — no fragmented data or disconnected tooling.
+
+---
+
+## Why Does This Matter?
+
+By embedding PostHog Go, backend teams gain **full visibility into user interactions and system behavior** directly from the source of truth — the server. This control over experimentation and data collection enables:
+
+- **Faster Release Cycles:** Safely deploy new features to selected users with confidence.
+- **Data-Driven Decisions:** Back experiments and product changes with real backend data.
+- **Improved Reliability:** Detect issues linked to new releases or user segments quickly.
+
+
+---
+
+## Practical Tips for Effective Use
+
+- **Define clear user contexts:** Ensure the `DistinctId` and user properties passed to PostHog Go accurately represent your users for precise feature flag targeting.
+- **Leverage cohorts and properties:** Use person and group properties to tailor flag evaluation and event capture, enabling sophisticated segmentation.
+- **Monitor rollout percentages:** Control and fine-tune feature exposure gradually with rollout configurations.
+
+---
+
+## Next Steps
+
+For concrete implementation guidance and example workflows, proceed to the [Quickstart & Example Workflows](/overview/features-and-integration/quickstart-and-examples) page or explore the [Using Feature Flags Guide](/guides/core-workflows/using-feature-flags).
+
+If you are new to PostHog Go, reviewing the [What is PostHog Go?](/overview/introduction-and-value/what-is-posthog-go) page will provide a solid foundational understanding.
+
+---
