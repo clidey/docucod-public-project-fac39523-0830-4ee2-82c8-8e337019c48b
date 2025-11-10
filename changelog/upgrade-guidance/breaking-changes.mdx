@@ -1,0 +1,116 @@
+---
+title: "Breaking Changes & Deprecations"
+description: "Lists all breaking changes, removed features, and deprecation notices across releases. Clearly explains required actions so you can adapt your usage and avoid service disruptions."
+---
+
+# Breaking Changes & Deprecations
+
+This page summarizes all breaking changes, removed features, and deprecation notices introduced across PostHog Go client releases. It serves as your essential guide to understanding impactful modifications so you can seamlessly adapt your integration, avoid disruption, and plan migrations effectively.
+
+---
+
+## 1. Understanding Breaking Changes
+
+Breaking changes are significant alterations in behavior, API, or feature support that require you to update your usage or code to maintain compatibility.
+
+**Why They Matter:** If overlooked, breaking changes can cause runtime errors, failed feature flag evaluations, or data inconsistencies.
+
+**How To Use This Section:**
+- Identify which versions introduced breaking changes.
+- Review the detailed descriptions and affected features.
+- Follow provided migration instructions.
+
+---
+
+## 2. Deprecations and Feature Removals
+
+Features or APIs marked as deprecated will continue to work for a limited time but are slated for removal in future releases.
+
+**Action Required:** Plan to transition your code away from deprecated features ahead of removal deadlines.
+
+This section details:
+- Deprecated APIs and features
+- Timelines for removal
+- Recommended alternatives or migration paths
+
+---
+
+## 3. Recent Breaking Changes
+
+### Version 1.8.0 (Released 2024-05-15)
+
+- **Feature Flag Evaluation Refactor**
+  - The internal mechanics of local feature flag evaluation were reworked to improve accuracy and performance.
+  - **Impact:** Evaluation using complex cohorts with negation logic now behaves strictly according to updated cohort definitions.
+  - **Required Action:** Review any custom logic relying on previous local evaluation heuristics, especially if using cohort-based targeting with negations.
+
+- **Removal of Fallback Evaluation for Certain Flags**
+  - Flags configured with only local evaluation enabled no longer fallback to remote `decide` calls.
+  - **Impact:** If relying on fallback remote evaluation, feature flags might now return inactive or no variant.
+  - **Required Action:** Adjust your client configuration or update flag targeting rules to ensure consistent results.
+
+### Version 1.7.0 (Released 2024-03-10)
+
+- **Deprecated Simple Flags Handling**
+  - Support for `is_simple_flag` type is now deprecated.
+  - **Impact:** Flags marked as simple will continue functioning but will be removed in the next major release.
+  - **Recommended Migration:** Convert simple flags to the new standard flag format with explicit rollout percentages and group filters.
+
+- **Cohort Evaluation Operator Update**
+  - The operator for property filters in cohorts has been standardized, requiring explicit `operator` fields.
+  - **Impact:** Older configurations lacking operators may result in evaluation failure.
+  - **Required Action:** Audit your cohort filters and update them to include explicit operator definitions.
+
+---
+
+## 4. Migration and Upgrade Recommendations
+
+To minimize disruption and leverage the latest improvements:
+
+- **Audit Your Feature Flags:** Review all active feature flags in PostHog dashboard and identify those using deprecated patterns or older evaluation modes.
+
+- **Update Client Configuration:** Ensure your PostHog Go client is configured in line with the latest local evaluation and fallback behavior.
+
+- **Retest Feature Flag Behavior:** Use staging and test environments to validate feature flag outcomes after upgrading the client version.
+
+- **Follow Migration Guides:** Consult our upgrade checklists and migration guides linked below for step-by-step procedures.
+
+---
+
+## 5. Common Pitfalls and Troubleshooting
+
+- **Unexpected Feature Flag Results:** Usually caused by ignoring changes in local evaluation logic or fallback disablement. Re-evaluate your flag targeting rules and rollout percentages.
+
+- **Cohort Logic Failures:** Missing or incorrect filter operators lead to no matches. Always define `operator` explicitly in cohort properties.
+
+- **Client Initialization Errors:** Verify your client setup matches updated authentication and configuration requirements.
+
+<Tip>
+Use the `Validating Your Integration` guide after upgrades to confirm correct feature flag evaluations and event captures.
+</Tip>
+
+---
+
+## 6. Deprecation Timeline
+
+| Feature/API           | Deprecation Announced | Removal Planned | Notes                                        |
+|----------------------|----------------------|-----------------|----------------------------------------------|
+| Simple Flags Support  | 1.7.0 (2024-03-10)    | 2.0.0           | Convert to new flag formats before upgrade. |
+| Legacy Cohort Filters | 1.7.0 (2024-03-10)    | 2.0.0           | Must specify operators explicitly.           |
+
+---
+
+## 7. Additional Resources
+
+- [Upgrade Checklist](/changelog/upgrade-guidance/upgrade-checklist) — Step-by-step instructions to upgrade safely.
+- [Latest Release Notes](/changelog/release-notes/latest-release) — Explore all recent changes and enhancements.
+- [Capturing Events Guide](/guides/core-workflows/capturing-events) — Understand impact on event processing during upgrades.
+- [Validating Your Integration](/getting_started/configuration_first_run/validating_integration) — Confirm your client functions as expected.
+
+---
+
+For any critical upgrade questions or assistance, please consult our support channels or documentation hubs.
+
+<Check>
+Keeping abreast of breaking changes and deprecations is essential to maintain reliable analytics and feature flagging using PostHog Go. Proactive migration ensures uninterrupted experimentation and data insights.
+</Check>
