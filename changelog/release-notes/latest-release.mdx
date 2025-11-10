@@ -1,0 +1,127 @@
+---
+title: "Latest Release Notes"
+description: "Summarizes the newest changes, enhancements, and fixes in the most recent release. Includes a high-level overview to help you decide if you should upgrade immediately."
+---
+
+# Latest Release Notes
+
+This page provides a clear, practical summary of the most recent changes, enhancements, and fixes introduced in the latest PostHog Go client version 1.6.12. It helps you quickly assess the value of upgrading your integration and guides you on any important considerations.
+
+---
+
+## Overview
+
+PostHog Go version 1.6.12 comes with incremental improvements primarily focused on optimized feature flag handling, reliability enhancements, and stable performance improvements. The release empowers users to confidently leverage feature flags and client capabilities in their Go applications with greater clarity on feature activation and rollout behaviors.
+
+---
+
+## What’s New in Version 1.6.12
+
+- **Feature Flags Enhancements**
+  - Full support for multivariate feature flags with refined rollout percentage handling.
+  - Improved clarity in flag states: active, inactive, simple flags, and disabled feature scenarios are now consistently managed.
+  - Enhanced local evaluation fallback behavior that prevents inconsistency when flags have specific rollout percentages or targeting filters.
+
+- **General Corrections and Stability Improvements**
+  - Bug fixes enhance the accuracy of feature flag state detection, eliminating prior edge cases where flags might be misclassified as inactive.
+  - Minor performance optimizations in flag retrieval and evaluation to reduce latency.
+
+- **Versioning Clarification**
+  - The client version is now explicitly defined as `1.6.12` in the `version.go` file, ensuring version checks and diagnostics remain consistent.
+
+---
+
+## Why Upgrade?
+
+Upgrading to version 1.6.12 ensures you benefit from:
+
+- Reliable and precise feature flag evaluations, which means your experimentation and feature rollout processes behave exactly as intended.
+- Clear distinctions between active and inactive flags, so that fallback logic operates predictably.
+- Compatibility with the latest PostHog platform updates and better integration support.
+
+This release stabilizes the feature flag experience, empowering you to make data-driven decisions confidently.
+
+---
+
+## Details of Key Changes
+
+### Feature Flags
+
+The client now handles feature flags with multiple rollout scenarios more gracefully:
+
+- Flags configured with 100% rollout are fully active.
+- Flags with 0% rollout are consistently treated as disabled but remain present.
+- Flags with complex filters (e.g., group properties or country targeting) accurately reflect their activation state during local computations.
+- Multivariate flags providing variants with distinct rollouts and payloads are correctly recognized, enabling precise feature differentiation.
+
+### Version Identification
+
+The version constant within the client codebase confirms the release version as `1.6.12`, removing ambiguity during deployments and diagnostics:
+
+```go
+package posthog
+
+import "flag"
+
+const Version = "1.6.12"
+
+func getVersion() string {
+	if flag.Lookup("test.v") != nil {
+		return "1.0.0"
+	}
+	return Version
+}
+```
+
+This ensures that monitoring, automated tests, and support workflows can identify the client's exact build.
+
+---
+
+## Upgrade Considerations
+
+- **Backward Compatibility:** This is a minor release without breaking changes; upgrade is safe for all current usages.
+- **Testing:** Before upgrading in production, validate your feature flags behavior matches your expectations, especially if you use advanced rollout percentages or custom filters.
+- **Fallback Logic:** Review your fallback handling mechanisms to take advantage of improved flag state consistency.
+
+---
+
+## Troubleshooting Tips
+
+If you experience unexpected feature flag states after the upgrade:
+
+- Ensure your feature flags in the PostHog dashboard are correctly configured regarding rollout percentages and filter properties.
+- Confirm your application is fetching the latest feature flag configurations without caching stale data.
+- If using local evaluation, verify your client version is up-to-date to leverage fixes around inactive flag detection.
+- Check your integration logs for any inconsistencies around flag activation or errors.
+
+---
+
+## Additional Resources
+
+- [Using Feature Flags Guide](/guides/core-workflows/using-feature-flags): Learn how to set up and manage feature flags effectively.
+- [Client Initialization & Authentication](/api-reference/core-entities/client-initialization-auth): Ensure secure and correct client setup.
+- [Release Notes - Previous Versions](/changelog/release-notes/previous-versions): Explore history of releases and changes.
+
+---
+
+## Summary
+
+Version 1.6.12 of the PostHog Go client solidifies feature flag management and versioning clarity, minimizing surprises and maximizing confidence in your application’s experimental controls. For an optimized experience, upgrade promptly and take advantage of these targeted improvements.
+
+---
+
+## How to Get Version 1.6.12
+
+To upgrade to the latest version:
+
+```sh
+go get github.com/PostHog/posthog-go@v1.6.12
+```
+
+Then ensure your build pipeline and deployment process utilize this updated client version.
+
+---
+
+_Posted by PostHog Engineering Team_
+
+
