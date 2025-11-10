@@ -1,0 +1,213 @@
+---
+title: "Validating Your Integration"
+description: "Confirm that your setup is complete and data is flowing to PostHog. This validation guide shows how to check for successful event delivery, spot misconfigurations, and interpret client output."
+---
+
+# Validating Your Integration
+
+Confirm that your PostHog Go client setup is complete and that data is successfully flowing to your PostHog instance. This guide helps you verify successful event delivery, quickly identify common misconfigurations, and understand how to interpret client output logs.
+
+---
+
+## 1. Why Validate Your Integration?
+
+Setting up the PostHog Go client is only the first step. Validation ensures your application:
+
+- Sends events correctly to your PostHog backend
+- Receives and evaluates feature flags as expected
+- Handles authentication and connectivity without errors
+
+Validation prevents silent failures and empowers you to confidently start capturing meaningful analytics.
+
+---
+
+## 2. Validation Checklist
+
+Follow these practical steps to confirm a robust integration:
+
+### Step 1: Confirm Client Initialization
+
+- Ensure your client is initialized with the proper `POSTHOG_PROJECT_API_KEY` and endpoint.
+- If using local evaluation or advanced features, verify your `POSTHOG_PERSONAL_API_KEY` is set.
+
+Example initialization snippet:
+
+```go
+client, err := posthog.NewWithConfig(
+    "phc_your_project_api_key_here",
+    posthog.Config{
+        Endpoint:       "http://localhost:8000",
+        PersonalApiKey: "phx_your_personal_api_key_here",
+    },
+)
+if err != nil {
+    log.Fatalf("Failed to initialize client: %v", err)
+}
+defer client.Close()
+```
+
+<Tip>
+Replace the API keys and endpoint with your actual configuration. These values are typically set in your environment variables or configuration files.
+</Tip>
+
+---
+
+### Step 2: Capture a Test Event
+
+- Send a simple event to verify event capture functionality.
+
+```go
+err = client.Enqueue(posthog.Capture{
+    DistinctId: "test-user",
+    Event:      "test_event",
+    Properties: posthog.NewProperties().Set("validation", "true"),
+})
+if err != nil {
+    log.Fatalf("Failed to enqueue event: %v", err)
+}
+```
+
+- After sending the event, wait briefly to allow batching and network transmission.
+
+---
+
+### Step 3: Verify Event Reception in PostHog
+
+- Log in to your PostHog instance.
+- Navigate to the **Events** page.
+- Filter for the event named `test_event`.
+- Confirm the event appears, linked to the distinct ID "test-user".
+
+<Tip>
+If you do not see the event:
+
+- Check network settings and firewall rules blocking outgoing requests.
+- Verify your API key and endpoint are correctly configured.
+- Examine client logs for errors or dropped events.
+</Tip>
+
+---
+
+### Step 4: Validate Feature Flag Evaluation
+
+- Use the client to fetch and evaluate a known feature flag.
+- Example:
+
+```go
+flagKey := "simple-flag"
+isEnabled, err := client.IsFeatureEnabled(posthog.FeatureFlagPayload{
+    Key:        flagKey,
+    DistinctId: "test-user",
+})
+if err != nil {
+    log.Fatalf("Error evaluating flag '%s': %v", flagKey, err)
+}
+log.Printf("Feature flag '%s' enabled: %v", flagKey, isEnabled)
+```
+
+- Ensure the output matches your flag's configuration in PostHog.
+
+<Tip>
+Use flags configured in your PostHog project for testing. Common example keys include `simpleFlag` or `enabled-flag`.
+</Tip>
+
+---
+
+### Step 5: Check Client Logs for Errors or Warnings
+
+- Enable logging in the client configuration for detailed insight.
+
+```go
+client, err := posthog.NewWithConfig("your_api_key", posthog.Config{
+    Logger: posthog.StdLogger(log.New(os.Stdout, "posthog-go", log.LstdFlags), true),
+})
+```
+
+- Review the logs for issues such as:
+  - Failed API calls
+  - Timeout errors
+  - Invalid response payloads
+  - Feature flag fetch failures
+
+<Tip>
+Verbose logging during validation can assist in pinpointing problems but should be reduced or disabled in production environments.
+</Tip>
+
+---
+
+## 3. Common Misconfigurations and Troubleshooting
+
+<AccordionGroup title="Common Issues and Solutions">
+<Accordion title="No Events Appearing in PostHog">
+- **Cause:** Incorrect API key or endpoint.
+- **Solution:** Double-check your API key from the PostHog setup page and confirm the endpoint URL is reachable.
+- Test connectivity by pinging your PostHog host or using `curl` to POST a simple event.
+</Accordion>
+<Accordion title="Feature Flags Not Evaluating as Expected">
+- **Cause:** Local evaluation data may be stale or out of sync.
+- **Solution:**
+  - Call `client.ReloadFeatureFlags()` to refresh cached flags.
+  - Check that your user and properties match targeting criteria.
+  - Confirm your personal API key is correctly set if using local evaluation.
+</Accordion>
+<Accordion title="Timeouts or Network Errors">
+- **Cause:** Client unable to reach PostHog due to network issues.
+- **Solution:** Verify network/firewall settings permit inbound and outbound traffic on PostHog ports (usually 80/443).
+- Adjust client timeout settings if necessary.
+</Accordion>
+<Accordion title="Invalid or Empty Responses from Client">
+- **Cause:** Misconfigured client or feature flag API issues.
+- **Solution:** Enable debug logging; consult error messages for clues.
+- Ensure PostHog backend is healthy and API endpoints are operational.
+</Accordion>
+</AccordionGroup>
+
+---
+
+## 4. Interpreting Client Output
+
+The PostHog Go client outputs helpful information when enabled:
+
+- **Event enqueue success/failure** messages
+- **Feature flag evaluation results** (enabled status, variant value, and reason)
+- **Error details** for API call failures
+
+<Tip>
+For feature flags, the returned data includes reasons for flag evaluation such as condition matches, fallback to remote evaluation, or no matches.
+</Tip>
+
+Example log output:
+
+```
+Feature flag 'simple-flag' enabled: true
+Event 'test_event' sent for distinct_id 'test-user'
+```
+
+This confirms your client is operating as expected.
+
+---
+
+## 5. Next Steps
+
+- After verification, proceed to [Capturing Events](/guides/core-workflows/capturing-events) for in-depth event tracking
+- Explore [Using Feature Flags](/guides/core-workflows/using-feature-flags) to manage experimentation
+- If integration issues persist, consult [Troubleshooting Setup & Installation](/getting_started/troubleshooting_common_issues/troubleshooting_installation)
+
+<Tip>
+Continual monitoring of event flows and flag evaluations ensures your analytics data remains reliable and actionable.
+</Tip>
+
+---
+
+## 6. Additional Resources
+
+- [Installing PostHog Go](/getting_started/prerequisites_installation/installation) – Setup walkthrough
+- [Configuration Setup](/getting_started/configuration_first_run/configuration_setup) – Detailed client config options
+- [Core Features at a Glance](/overview/features-and-integration/feature-highlights) – Overview of key capabilities
+- [PostHog Go GitHub Repository](https://github.com/PostHog/posthog-go) – Source code, examples, and issues
+
+---
+
+## 7. Summary
+
+Validate your PostHog Go integration by initializing the client correctly, sending test events, checking data reception in PostHog, and verifying feature flag evaluations. Use client logging to troubleshoot and confirm all communication paths are operational. This ensures seamless analytics and experimentation within your Go applications.
