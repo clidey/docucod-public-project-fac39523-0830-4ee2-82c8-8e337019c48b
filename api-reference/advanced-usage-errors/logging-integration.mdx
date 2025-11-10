@@ -1,0 +1,204 @@
+---
+title: "Logging Integration & Observability"
+description: "Documentation on integrating the PostHog SDK with logging frameworks such as slog. Explains log-based event capture, configuration of log levels, and correlation of logs with analytics data."
+---
+
+# Logging Integration & Observability
+
+Integrating PostHog Go with your application's logging infrastructure enables you to enhance observability by correlating analytics insights with detailed logs. This page guides you through connecting PostHog’s SDK with logging frameworks such as Go's standard `log` package or more sophisticated loggers like `slog`. You'll learn how to capture key analytics events through logs, configure log levels to control verbosity, and leverage log correlation to enrich both monitoring and troubleshooting workflows.
+
+---
+
+## Why Integrate Logging with PostHog?
+
+Modern backend systems require comprehensive observability that spans metric collection, event analytics, and logging. By integrating your PostHog client with logging frameworks, you achieve:
+
+- **Seamless context propagation:** Attach relevant user or feature flag information to logs.
+- **Unified troubleshooting:** Link logging traces to analytical events for faster diagnosis.
+- **Configurable verbosity:** Adjust logging levels to balance performance and insight.
+
+This integration gives you deep visibility into how your PostHog events align with business-critical operations.
+
+---
+
+## Supported Logging Interfaces
+
+PostHog Go defines a simple `Logger` interface to abstract over various logging backends:
+
+```go
+// Logger interface used by PostHog client
+// Implement this to integrate your preferred logging library
+// with PostHog’s internal operations.
+type Logger interface {
+  Debugf(format string, args ...interface{})
+  Logf(format string, args ...interface{})
+  Warnf(format string, args ...interface{})
+  Errorf(format string, args ...interface{})
+}
+```
+
+### Using the Standard Library Logger
+
+PostHog Go ships with a helper to wrap Go’s standard `log.Logger` type:
+
+```go
+import (
+	"log"
+	"github.com/posthog/posthog-go"
+)
+
+// Create a std logger instance
+stdLogger := log.New(os.Stderr, "posthog ", log.LstdFlags)
+
+// Wrap it for PostHog's client, enable verbose debug logs
+phLogger := posthog.StdLogger(stdLogger, true)
+
+// Inject the logger during client config
+client, err := posthog.NewWithConfig("project-api-key", posthog.Config{
+	Logger:  phLogger,
+	Verbose: true,
+})
+```
+
+Setting the second `verbose` argument to `true` enables debug logging which provides detailed trace information about event processing and network activity.
+
+### Supporting Other Logger Frameworks (e.g. slog)
+
+To integrate with Go’s structured logging such as `slog`, implement the `Logger` interface on your own wrapper that delegates to your logger of choice:
+
+```go
+import "golang.org/x/exp/slog"
+
+// SlogAdapter implements posthog.Logger
+// forwarding logs to slog.Logger
+
+// Adapt slog.Logger to satisfy interfaces
+func (s *SlogAdapter) Debugf(format string, args ...interface{}) {
+	// Use Sprintf to format message
+	msg := fmt.Sprintf(format, args...)
+	s.logger.Debug(msg)
+}
+
+func (s *SlogAdapter) Logf(format string, args ...interface{}) {
+	msg := fmt.Sprintf(format, args...)
+	s.logger.Info(msg)
+}
+
+func (s *SlogAdapter) Warnf(format string, args ...interface{}) {
+	msg := fmt.Sprintf(format, args...)
+	s.logger.Warn(msg)
+}
+
+func (s *SlogAdapter) Errorf(format string, args ...interface{}) {
+	msg := fmt.Sprintf(format, args...)
+	s.logger.Error(msg)
+}
+
+// Usage
+slogLogger := slog.New(slog.NewTextHandler(os.Stderr))
+adapter := &SlogAdapter{logger: slogLogger}
+client, _ := posthog.NewWithConfig("project-api-key", posthog.Config{
+	Logger: adapter,
+})
+```
+
+This approach ensures your centralized logging format is preserved while still receiving detailed PostHog client logs.
+
+---
+
+## Configuring Log Levels
+
+The PostHog SDK uses four log levels provided by the `Logger` interface:
+
+| Log Level | Usage                           | Enable Verbose Debug |
+|-----------|--------------------------------|----------------------|
+| DEBUG     | Fine-grained internal debugging| `Verbose: true`       |
+| INFO      | Routine workflow notifications  | Always enabled         |
+| WARN      | Recoverable or noteworthy issues| Always enabled         |
+| ERROR     | Serious errors and failures     | Always enabled         |
+
+**Best Practice:**
+- Enable `DEBUG` logs during development or troubleshooting.
+- Use INFO, WARN, and ERROR for production monitoring.
+
+---
+
+## Log-Based Event Capture
+
+You can utilize logging calls to track noteworthy events or errors within your business logic and correlate these with analytics data post ingestion.
+
+### Capturing Errors with Logs
+
+Errors encountered during event sending or flag evaluations are logged at the `ERROR` level, ensuring visibility:
+
+```go
+if err := client.Capture(...); err != nil {
+	client.Logger.Errorf("Failed to send event: %v", err)
+}
+```
+
+### Correlating Logs with Analytics
+
+Include identifiers such as distinct IDs or feature flags in your log messages to connect logs with PostHog events for richer context:
+
+```go
+client.Logger.Infof("User %s activated feature flag %s", userID, featureKey)
+```
+
+This practice speeds up root-cause analysis when investigating user behavior or rollout issues.
+
+---
+
+## Troubleshooting Common Logging Issues
+
+<AccordionGroup title="Troubleshooting Logging Integration">
+<Accordion title="Logs Not Appearing">
+- Verify that your logger is properly injected into the PostHog client’s configuration.
+- Ensure your logging framework is outputting logs to the expected destination (stdout, files, log aggregator).
+- Confirm `Verbose: true` is set in the config to capture DEBUG logs.
+</Accordion>
+<Accordion title="Performance Impact of Verbose Logging">
+- Enable debug logs only during development or troubleshooting to avoid performance degradation.
+- Disable debug level logging in production for optimal throughput.
+</Accordion>
+<Accordion title="Inconsistent Log Formatting">
+- Implement the `Logger` interface carefully to preserve formatting and structured log context.
+- Use your native logger’s formatting methods inside the interface implementation to maintain consistency.
+</Accordion>
+</AccordionGroup>
+
+---
+
+## Summary
+
+Integrating PostHog Go client logging with your application’s logging stack empowers you to:
+
+- Collect detailed, contextual insights and error traces.
+- Configure log verbosity to tailor operational visibility.
+- Correlate logs directly with feature flag evaluations and event captures.
+
+Leverage the `Logger` interface and provided standard logger wrapper to plug into your existing logger with minimal effort.
+
+---
+
+## Additional Resources
+
+- [PostHog Go Client Overview & Features](../../overview/introduction-and-value/what-is-posthog-go)
+- [Capturing Events – Core Workflows](../../guides/core-workflows/capturing-events)
+- [Feature Flags & Remote Config](./feature-flags)
+- [Error & Exception Capture](./error-exception-capture)
+- [Standard Library `log` Package](https://pkg.go.dev/log)
+- [Go slog Package - Experimental](https://pkg.go.dev/golang.org/x/exp/slog)
+
+---
+
+## Source Code Reference
+
+Explore the `Logger` interface and standard logger wrapper in the source repository:
+
+```plaintext
+logger.go
+logger_test.go
+```
+
+<Source url="https://github.com/PostHog/posthog-go" paths={[{"path": "logger.go"},{"path": "logger_test.go"}]} />
