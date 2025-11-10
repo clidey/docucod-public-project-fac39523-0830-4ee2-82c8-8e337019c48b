@@ -1,0 +1,141 @@
+---
+title: "What is PostHog Go?"
+description: "Introduces the PostHog Go library as an official, open-source client for integrating PostHog’s analytics, feature flags, and product instrumentation directly in Go applications. Outlines the main capabilities—event capture, feature flags, error tracking, and user identification—and highlights the benefits for product teams seeking to better understand and experiment with user behavior."
+---
+
+# What is PostHog Go?
+
+## Unlock Deep Product Insights Directly from Your Go Applications
+
+PostHog Go is the official, open-source Go client library that brings PostHog’s powerful analytics, feature flags, and product instrumentation capabilities to Go developers. Designed to integrate seamlessly with Go-based backends, services, or command-line tools, this library enables you to capture user behavior, evaluate feature flags, track errors, and identify users — all from your Go codebase.
+
+### Why Choose PostHog Go?
+
+- **Direct Analytics Integration:** Easily send rich user events and metadata to your PostHog instance without needing proxies or external instrumentation.
+- **Feature Flag Evaluation:** Perform real-time feature flag checks within your application to deliver tailored user experiences.
+- **Error & Exception Tracking:** Capture application errors and exceptions for robust product observability.
+- **User Identification & Aliasing:** Map actions to users and link alternate user identities for accurate tracking.
+- **Open Source & Community-Driven:** Benefit from transparent development and active community contributions.
+
+### Ideal For
+
+Go developers, backend engineers, product teams, and data-focused organizations seeking granular user behavior understanding and agile experimentation directly from their backend or service layers.
+
+---
+
+## Introducing PostHog Go
+
+PostHog Go is a statically-typed client library dedicated to empowering Go applications with PostHog’s feature-rich product analytics platform. By instrumenting your Go apps using PostHog Go, you enable detailed event capture, feature flag management, and error logging directly in your code, enriching your data collection and enabling smarter product experiments.
+
+### What Does PostHog Go Enable You To Do?
+
+- **Capture User Events:** Track user actions such as page views, button clicks, purchases, or custom business events with ease.
+- **Evaluate Feature Flags:** Programmatically check the state and variants of feature flags for individual users, allowing controlled feature rollouts and targeted testing.
+- **Identify Users & Link Identities:** Send identify calls to attach metadata to users and alias calls to merge identities, ensuring accurate user profiles.
+- **Record Exceptions:** Log errors or exceptions encountered in your application, directly feeding your observability workflows.
+
+### What Makes PostHog Go Stand Out?
+
+- **Comprehensive Go-Native SDK:** Designed specifically for Go applications, leveraging idiomatic patterns and Go best practices.
+- **Fully Featured:** Supports all key capabilities of the PostHog platform including feature flag local evaluation, batching of events, and error tracking.
+- **Flexible Configuration:** Customize endpoints, API keys, batching behavior, and logging for your application’s needs.
+- **Asynchronous & Efficient:** Handles event sending in the background, ensuring minimal disruption to your app’s performance.
+
+---
+
+## Core Features & Capabilities
+
+### 1. Event Capture
+Send structured events like page views, clicks, purchases, or any custom business action with associated properties. Events are queued and sent in batches for optimal efficiency.
+
+### 2. Feature Flag Evaluation
+Query feature flags synchronously or asynchronously, supporting both simple boolean flags and multi-variant configurations. The client allows local evaluation for low-latency decision making.
+
+### 3. User Identification and Aliasing
+Attach user metadata and link multiple identifiers to unify user insights across sessions and devices.
+
+### 4. Exception and Error Tracking
+Capture exceptions as events, which can be enhanced with stack traces and metadata, helping teams identify and resolve issues quickly.
+
+### 5. Advanced Logging Integration
+Integrate with Go’s structured logging (e.g., `slog`) to automatically capture warning or error logs as PostHog events.
+
+### 6. Configuration & Customization
+Configure batch sizes, flush intervals, API endpoints, and personal API keys for granular control over SDK behavior.
+
+---
+
+## Why Does PostHog Go Matter?
+
+### Realize Actionable Insights with Backend Context
+Events and feature flag checks initiated server-side provide high-fidelity data unaffected by client-side manipulation or network issues, delivering more reliable analytics.
+
+### Streamline Your Experimentation and Product Rollouts
+By embedding feature flag evaluation within your Go applications, you can dynamically enable or disable features per user or group, enabling safe, controlled launches and A/B tests.
+
+### Simplify Observability
+With built-in error capture and logging integrations, PostHog Go helps surface backend issues alongside user behavior, giving product and engineering teams a unified view of product health.
+
+### Example Use Cases
+
+- **SaaS backends** evaluating feature flags to unlock premium capabilities for certain customers.
+- **Command-line tools** that track usage patterns and errors to improve developer experience.
+- **Microservices** capturing detailed events to gauge feature adoption and troubleshoot bugs.
+
+### Before and After
+
+| Without PostHog Go                         | With PostHog Go                                  |
+|-------------------------------------------|-------------------------------------------------|
+| Manual, fragmented event tracking setups  | Unified, structured event capture baked into app |
+| No built-in server-side feature flag checks | Real-time, backend-driven feature flag evaluation  |
+| Separate error logging and analytics      | Integrated exception capture linked to usage data |
+| Harder to correlate user activity and issues | Clear user-centric observability across app layers |
+
+---
+
+## Getting Started Preview
+
+Jump into your Go project by importing the library and initializing the client with your PostHog API key. Capture events, identify users, and check feature flags within minutes.
+
+```go
+import (
+    "os"
+    "github.com/posthog/posthog-go"
+)
+
+func main() {
+    client := posthog.New(os.Getenv("POSTHOG_API_KEY"))
+    defer client.Close()
+
+    client.Enqueue(posthog.Capture{
+        DistinctId: "user123",
+        Event:      "user_signup",
+        Properties: posthog.NewProperties().Set("source", "website"),
+    })
+
+    isEnabled, err := client.IsFeatureEnabled(posthog.FeatureFlagPayload{
+        Key: "new_dashboard",
+        DistinctId: "user123",
+    })
+    if err == nil && isEnabled == true {
+        // Show new dashboard variant
+    }
+}
+```
+
+### Prerequisites
+
+- Go 1.18+ installed on your development environment.
+- Access to a PostHog instance with a valid Project API Key.
+
+### Next Steps
+
+To dive deeper into integration, explore:
+
+- [Quickstart & Example Workflows](../getting_started/configuration_first_run/first_usage_quickstart)
+- [Capturing Events](../guides/core-workflows/capturing-events)
+- [Using Feature Flags](../guides/core-workflows/using-feature-flags)
+
+---
+
+_PostHog Go makes it effortless to embed powerful analytics and experimentation controls into your Go applications. Embrace clear insights, smarter rollouts, and seamless error observability—all from the language you love._
