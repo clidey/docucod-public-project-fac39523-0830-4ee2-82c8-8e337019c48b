@@ -1,0 +1,156 @@
+{
+  "background": {
+    "decoration": "gradient"
+  },
+  "colors": {
+    "dark": "#1E3A8A",
+    "light": "#60A5FA",
+    "primary": "#60A5FA"
+  },
+  "favicon": "/favicon.svg",
+  "fonts": {
+    "family": "Montserrat",
+    "format": "woff2",
+    "source": "https://fonts.gstatic.com/s/googlesansflex/v5/t5sJIQcYNIWbFgDgAAzZ34auoVyXkJCOvp3SFWJbN5hF8Ju1x6sKCyp0l9sI40swNJwGpVd4AZzz0v6lJ4qFXNZhGjLvDSkV4USKMo6qQzwliVdHAy9jxTDHg_ugnAakpwGc-cxgUqDCIUI.woff2"
+  },
+  "icons": {
+    "library": "fontawesome"
+  },
+  "logo": {
+    "dark": "./logo/logo.svg",
+    "light": "./logo/logo.svg"
+  },
+  "name": "PostHog Go",
+  "navigation": {
+    "tabs": [
+      {
+        "groups": [
+          {
+            "group": "Introduction \u0026 Value Proposition",
+            "pages": [
+              "overview/introduction-and-value/what-is-posthog-go",
+              "overview/introduction-and-value/audience-and-use-cases"
+            ]
+          },
+          {
+            "group": "Core Concepts \u0026 Architecture",
+            "pages": [
+              "overview/architecture-and-concepts/architecture-diagram-and-component-flow",
+              "overview/architecture-and-concepts/core-terminology"
+            ]
+          },
+          {
+            "group": "Feature Overview \u0026 Integration",
+            "pages": [
+              "overview/features-and-integration/feature-highlights",
+              "overview/features-and-integration/quickstart-and-examples",
+              "overview/features-and-integration/integration-with-posthog"
+            ]
+          }
+        ],
+        "tab": "Overview"
+      },
+      {
+        "groups": [
+          {
+            "group": "Prerequisites \u0026 Installation",
+            "pages": [
+              "getting_started/prerequisites_installation/system_requirements",
+              "getting_started/prerequisites_installation/installation"
+            ]
+          },
+          {
+            "group": "Configuration \u0026 First Use",
+            "pages": [
+              "getting_started/configuration_first_run/configuration_setup",
+              "getting_started/configuration_first_run/first_usage_quickstart",
+              "getting_started/configuration_first_run/validating_integration"
+            ]
+          },
+          {
+            "group": "Troubleshooting \u0026 FAQ",
+            "pages": [
+              "getting_started/troubleshooting_common_issues/troubleshooting_installation",
+              "getting_started/troubleshooting_common_issues/faq"
+            ]
+          }
+        ],
+        "tab": "Getting Started"
+      },
+      {
+        "groups": [
+          {
+            "group": "Core Workflows",
+            "pages": [
+              "guides/core-workflows/capturing-events",
+              "guides/core-workflows/user-identification-aliasing",
+              "guides/core-workflows/using-feature-flags"
+            ]
+          },
+          {
+            "group": "Advanced Use Cases",
+            "pages": [
+              "guides/advanced-use-cases/event-deduplication-uuid",
+              "guides/advanced-use-cases/error-tracking-logging",
+              "guides/advanced-use-cases/performance-optimization"
+            ]
+          }
+        ],
+        "tab": "Guides"
+      },
+      {
+        "groups": [
+          {
+            "group": "Core Entities \u0026 Methods",
+            "pages": [
+              "api-reference/core-entities/client-initialization-auth",
+              "api-reference/core-entities/capture-events",
+              "api-reference/core-entities/identify-users",
+              "api-reference/core-entities/aliasing-context-linking",
+              "api-reference/core-entities/feature-flags"
+            ]
+          },
+          {
+            "group": "Error Handling, Logging, and Advanced Features",
+            "pages": [
+              "api-reference/advanced-usage-errors/error-exception-capture",
+              "api-reference/advanced-usage-errors/logging-integration",
+              "api-reference/advanced-usage-errors/configuration-options"
+            ]
+          },
+          {
+            "group": "Infrastructure, Quotas, and Error Codes",
+            "pages": [
+              "api-reference/infrastructure-limits/rate-limiting-quotas",
+              "api-reference/infrastructure-limits/error-formats-and-status-codes"
+            ]
+          }
+        ],
+        "tab": "API Reference"
+      },
+      {
+        "groups": [
+          {
+            "group": "Release Notes",
+            "pages": [
+              "changelog/release-notes/latest-release",
+              "changelog/release-notes/previous-versions"
+            ]
+          },
+          {
+            "group": "Upgrade and Migration Guidance",
+            "pages": [
+              "changelog/upgrade-guidance/breaking-changes",
+              "changelog/upgrade-guidance/upgrade-checklist"
+            ]
+          }
+        ],
+        "tab": "Changelog"
+      }
+    ]
+  },
+  "styling": {
+    "codeblocks": "dark",
+    "eyebrows": "breadcrumbs"
+  }
+}
