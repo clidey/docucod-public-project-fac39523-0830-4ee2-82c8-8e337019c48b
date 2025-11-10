@@ -1,0 +1,196 @@
+---
+title: "Configuration & Advanced Client Options"
+description: "A complete reference for configuring the client, including endpoint overrides, custom batching/timeouts, API key management, and local development options. Supports both project-wide and per-call customization."
+---
+
+# Configuration & Advanced Client Options
+
+This page provides a comprehensive reference for configuring the PostHog Go client. You'll learn how to customize endpoint URLs, control batching and timeout settings, manage API keys for authentication, and enable options suited for local development and advanced usage. These configuration options help tailor the client to fit application needs and optimize performance.
+
+---
+
+## 1. Client Configuration Overview
+
+PostHog Go's client configuration centers around the `Config` struct, which you pass when creating a new client instance. This struct exposes parameters that allow fine-grained control over how the client behaves with the PostHog platform.
+
+The configuration offers:
+
+- Endpoint overrides for connecting to different PostHog instances
+- API key settings for project or personal API key authorization
+- Settings to control batching of event data
+- Timeout controls for network requests
+- Flags specific to feature flag evaluation
+- Local development and debugging options
+
+
+## 2. Endpoint & API Keys
+
+### PostHog Endpoint URL
+
+This setting controls the base URL the client uses to send data to your PostHog instance.
+
+- **POSTHOG_ENDPOINT**: The default points to `https://app.posthog.com` unless overridden.
+- For self-hosted instances or during local development, set this to your specific instance URL.
+
+### API Keys
+
+Authentication is critical for secure usage.
+
+- **Project API Key (`POSTHOG_PROJECT_API_KEY`)**: Grants permissions for capturing events and accessing project data.
+- **Personal API Key (`POSTHOG_PERSONAL_API_KEY`)**: Enables advanced features like local feature flag evaluation and API requests that require user-level permission.
+
+You can configure keys in the environment or programmatically as part of the configuration.
+
+
+## 3. Configuration Parameters
+
+| Parameter                     | Type      | Description                                                                               | Default            |
+|-------------------------------|-----------|-------------------------------------------------------------------------------------------|--------------------|
+| `Endpoint`                    | `string`  | URL of your PostHog instance                                                             | `"https://app.posthog.com"` |
+| `PersonalApiKey`              | `string`  | Personal API key for advanced features                                                   | `""`             |
+| `ProjectApiKey`               | `string`  | Project API key for data ingestion                                                       | `""`             |
+| `FeatureFlagRequestTimeout`  | `time.Duration` | HTTP request timeout for feature flag evaluation                                        | `5s`               |
+| `DisableCLILauncher`          | `bool`    | Disables launcher CLI prompts                                                           | `false`            |
+| `Debug`                      | `bool`    | Enable debug logging                                                                     | `false`            |
+| `BatchSize`                  | `int`     | Number of events batched before sending                                                 | `20`               |
+| `FlushInterval`              | `time.Duration` | Interval for flushing batches automatically                                               | `100ms`            |
+
+
+## 4. Batching & Timeouts
+
+### Batching
+
+The client batches captured events to improve performance and reduce network overhead.
+
+- **`BatchSize`** controls how many events are collected before sending them automatically.
+- If you want faster event delivery at the expense of more requests, set a smaller batch size.
+
+### Flush Interval
+
+- **`FlushInterval`** sets the maximum time to wait before sending even if the batch size isn't reached.
+- Useful to ensure events are not delayed if traffic is low.
+
+### Timeout
+
+- Feature flag requests or any HTTP interaction respect the configured timeout (`FeatureFlagRequestTimeout`).
+- Proper timeout configuration prevents hanging API calls and improves resilience.
+
+
+## 5. Feature Flag Evaluation Options
+
+The client supports both remote and local feature flag evaluation.
+
+- Use the **`PersonalApiKey`** to enable local evaluation.
+- **`OnlyEvaluateLocally`** flag disables all fallback to the remote API and relies solely on local flag evaluation data.
+
+### Feature Flags Local Evaluation Behavior
+
+- Fetches complete flag definitions and cohorts to evaluate flags within your application.
+- Automatically refreshes local flag data.
+- If local evaluation fails and fallbacks are allowed, the client queries the remote `/flags` API.
+
+
+## 6. Local Development & Debugging
+
+To enhance developer experience during local development:
+
+- **Debug Logging**: Enable debug mode to get verbose output useful during troubleshooting.
+- **Disable CLI Launcher**: Useful if running in environments where interactive prompts are unwelcome.
+- Use local endpoint URLs to test against self-hosted instances or mocks.
+
+
+## 7. Example Configuration Setup
+
+```go
+package main
+
+import (
+    "log"
+    "time"
+
+    "github.com/posthog/posthog-go"
+)
+
+func main() {
+    cfg := posthog.Config{
+        Endpoint:                "http://localhost:8000", // Use self-hosted or local instance
+        PersonalApiKey:          "phx_YOUR_PERSONAL_API_KEY",
+        ProjectApiKey:           "phc_YOUR_PROJECT_API_KEY",
+        FeatureFlagRequestTimeout: 3 * time.Second,
+        BatchSize:               10,
+        FlushInterval:           200 * time.Millisecond,
+        Debug:                   true,
+    }
+
+    client, err := posthog.NewWithConfig("your-project-api-key", cfg)
+    if err != nil {
+        log.Fatalf("Failed to create client: %v", err)
+    }
+    defer client.Close()
+
+    // Now you can use client to capture events or evaluate flags
+}
+```
+
+
+## 8. Best Practices & Tips
+
+- Start with default batch sizes and flush intervals, then tune based on your event volume and latency requirements.
+- Provide both project and personal API keys if you use feature flags or advanced APIs.
+- Use short timeouts (1-5 seconds) to maintain responsiveness.
+- Enable debug logging during early integration; disable in production.
+- For local development, override endpoint URLs to point to your PostHog server.
+- Clean up clients with `defer client.Close()` to flush any remaining events.
+
+
+## 9. Troubleshooting
+
+<AccordionGroup title="Common Issues & Resolutions">
+<Accordion title="Timeouts when fetching feature flags">
+
+If your feature flag requests time out:
+
+- Check network connectivity to your PostHog instance.
+- Increase `FeatureFlagRequestTimeout` value if the server response is slow.
+- Verify the endpoint URL is correct.
+- Enable debug logging to view detailed request/response logs.
+
+</Accordion>
+
+<Accordion title="API Key Authentication Failures">
+
+- Ensure you use the correct API key types: project API key for events, personal API key for advanced access.
+- Verify keys are correctly set in environment variables or configuration.
+- Check for typos or expired keys in PostHog.
+
+</Accordion>
+
+<Accordion title="Local Evaluation Returns Incorrect or No Flag Data">
+
+- Confirm you enabled `PersonalApiKey` to access local evaluation data.
+- Validate that the client managed to fetch the local feature flag snapshot by inspecting logs.
+- If `OnlyEvaluateLocally` is set to true, ensure your local data includes all necessary flags.
+
+</Accordion>
+</AccordionGroup>
+
+
+## 10. Related Documentation
+
+- [Core Entities & Methods: Feature Flags]( /api-reference/core-entities/feature-flags )
+- [Client Initialization & Authentication]( /api-reference/core-entities/client-initialization-auth )
+- [Using Feature Flags Guide]( /guides/core-workflows/using-feature-flags )
+
+
+---
+
+This page ensures you can fully control the PostHog Go client with custom settings to fit your application environment, whether you host PostHog yourself or use PostHog Cloud.
+
+
+
+---
+
+### Source
+
+<Source url="https://github.com/PostHog/posthog-go" branch="main" paths={[{"path": "posthog.go", "range": "1-100"}]} />
+

@@ -1,0 +1,201 @@
+---
+title: "User Identification & Aliasing"
+description: "Step through the process of associating events to known users and linking different user identities across sessions or platforms. Includes best practices for property management and reducing user fragmentation."
+---
+
+# User Identification & Aliasing Guide
+
+## Overview
+This guide walks you through how to associate events with known users and link multiple user identities within your Go application using the PostHog Go client. You will learn how to identify users consistently across different sessions and platforms, apply aliasing to merge distinct identities, and manage user properties effectively to reduce fragmentation. This ensures your analytics capture an accurate and unified user picture.
+
+---
+
+### What You'll Achieve
+- Understand how to associate events to user identities using distinct IDs.
+- Learn how to create aliases linking different IDs to the same user.
+- Best practices for managing user properties to avoid fragmented user data.
+
+### Prerequisites
+- PostHog Go client installed and configured in your Go application.
+- Familiarity with event capturing concepts (see [Capturing Events](https://posthog.com/docs/guides/core-workflows/capturing-events)).
+- A configured PostHog project with API keys and endpoint setup (see [Configuration Setup](https://posthog.com/docs/getting_started/configuration_first_run/configuration_setup)).
+
+### Estimated Time
+10-20 minutes to implement and verify identification and aliasing integration.
+
+### Difficulty Level
+Intermediate – requires solid understanding of your app’s user lifecycle and event tracking.
+
+---
+
+## Step-by-Step Instructions
+
+### Step 1: Use Distinct IDs to Identify Users
+Every event you capture should be associated with a `distinct_id`. This is a unique identifier representing a user or actor.
+
+- Use a stable identifier like a user ID from your authentication system.
+- If the user is anonymous (not logged in), generate a unique anonymous ID (e.g., UUID) per user session.
+
+**Example:** Capturing an event with a distinct ID
+```go
+import posthog "github.com/posthog/posthog-go"
+
+client, err := posthog.NewWithConfig("YOUR_API_KEY", posthog.Config{} )
+if err != nil {
+	panic(err)
+}
+
+distinctId := "user-123"
+event := posthog.Capture{
+	Event:      "pageview",
+	DistinctId: distinctId,
+	Properties: posthog.NewProperties().Set("page", "homepage"),
+}
+client.Enqueue(event)
+```
+
+<Check>
+Always ensure the distinct ID is consistent for users across all events to maintain accurate tracking.
+</Check>
+
+---
+
+### Step 2: Create Aliases for Merging User Identities
+When a user is first anonymous and later identified (e.g., after login), use the aliasing method to link the anonymous `distinct_id` to the known user ID.
+
+This process merges the user profiles so the historical anonymous events are attributed to the logged-in user.
+
+**How to send an alias event:**
+
+```go
+aliasEvent := posthog.Alias{
+	Alias:      "logged-in-user-123",    // new user ID
+	DistinctId: "anonymous-id-abc",     // previous distinct ID
+}
+
+if err := aliasEvent.Validate(); err != nil {
+	panic(err) // Validate required fields
+}
+
+client.Enqueue(aliasEvent)
+```
+
+**Expected outcome:** Your PostHog project will combine analytics from both IDs into a single user profile.
+
+<Note>
+The `Alias` event requires both `Alias` and `DistinctId` fields to be non-empty strings. Validate before sending.
+</Note>
+
+---
+
+### Step 3: Managing User Properties
+User properties help enrich the user profile with metadata (e.g., email, subscription level, region).
+
+- Set these properties when identifying a user.
+- Avoid frequently changing unique identifiers in properties to prevent fragmentation.
+- Use consistent property key names.
+
+**Example of setting user properties during identify event:**
+```go
+identifyEvent := posthog.Identify{
+	DistinctId: "user-123",
+	Properties: posthog.NewProperties().Set("email", "user@example.com").Set("plan", "premium"),
+}
+
+client.Enqueue(identifyEvent)
+```
+
+---
+
+### Step 4: Linking User Identities Across Platforms
+If your application spans multiple platforms (web, mobile, backend), maintain the same `distinct_id` across systems once the user is identified.
+
+- Log in event should trigger an alias from the anonymous ID to user ID.
+- Pass the unified `distinct_id` when sending events from any platform.
+
+This enables holistic user analytics across devices and sessions.
+
+---
+
+## Best Practices
+
+- **Validate Aliases:** Ensure alias objects always include both the original and new IDs. Invalid aliases will be rejected.
+- **Consistent Distinct IDs:** Use stable identifiers wherever possible. For anonymous users, generate IDs that persist per device/session.
+- **Property Hygiene:** Don't overload user properties with volatile data to avoid inconsistencies.
+- **Timing:** Send alias events immediately after user identification to combine pre-login and post-login data.
+
+---
+
+## Common Pitfalls & Troubleshooting
+
+<AccordionGroup title="Troubleshooting User Identification Issues">
+<Accordion title="Alias Validation Errors">
+If alias creation fails validation:
+- Verify both `Alias` and `DistinctId` fields are present and non-empty.
+- Check for typos or incorrect field assignments.
+- Use the provided `Validate()` method to catch errors before sending.
+</Accordion>
+<Accordion title="Fragmented User Profiles">
+- Fragmentation occurs if distinct IDs are inconsistent across events.
+- Regularly audit your event pipeline for distinct ID assignment.
+- Use aliasing to backfill missing links.
+</Accordion>
+<Accordion title="Lost Events Post Login">
+- If events before login aren't attributed to the user, ensure an alias event was sent linking the anonymous ID to the user ID.
+- Alias events must be processed before identifying the user with the new ID.
+</Accordion>
+</AccordionGroup>
+
+---
+
+## Real-World Usage Example
+
+Imagine a visitor uses your website anonymously and gets assigned `anonymous-456`. They browse several pages, generating events with that ID.
+
+When they sign up or log in as `user-789`, you:
+
+1. Send an alias event associating `user-789` with `anonymous-456`.
+2. Start sending all new events with the `distinct_id` of `user-789`.
+3. PostHog merges the anonymous events with the identified user’s profile for unified insights.
+
+```go
+// Alias anonymous to identified user
+client.Enqueue(posthog.Alias{
+	Alias:      "user-789",
+	DistinctId: "anonymous-456",
+})
+
+// New events with identified user
+client.Enqueue(posthog.Capture{
+	Event:      "purchase",
+	DistinctId: "user-789",
+	Properties: posthog.NewProperties().Set("item", "premium_subscription"),
+})
+```
+
+---
+
+## Verification
+
+- Confirm alias events appear in your PostHog project.
+- Check that events linked to anonymous IDs are combined in the known user profile.
+- Verify user properties appear correctly assigned to user profiles.
+
+---
+
+## Next Steps
+
+- Explore the [Capturing Events](https://posthog.com/docs/guides/core-workflows/capturing-events) guide to enhance event tracking.
+- Use [Using Feature Flags](https://posthog.com/docs/guides/core-workflows/using-feature-flags) to customize user experiences based on identified users.
+- Review [Configuration Setup](https://posthog.com/docs/getting_started/configuration_first_run/configuration_setup) for optimal client configuration.
+
+---
+
+## References
+- [PostHog Go API Reference: Aliasing](https://posthog.com/docs/api-reference/core-entities/aliasing-context-linking)
+- [Validation Logic for Aliases](https://github.com/PostHog/posthog-go/blob/main/alias_test.go)
+- [Best Practices for User Identification](https://posthog.com/docs/guides/core-workflows/user-identification-aliasing)
+
+---
+
+_End of Guide_

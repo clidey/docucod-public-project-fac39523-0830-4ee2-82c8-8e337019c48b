@@ -1,0 +1,152 @@
+---
+title: "Rate Limiting & Quotas"
+description: "Explanation of client-side and server-side rate limits, event batching, and SDK behaviors under load. Contains limits reference and best practices for scaling integrations."
+---
+
+# Rate Limiting & Quotas
+
+PostHog Go client employs rate limiting and quotas both on the client side and the server side to ensure reliable ingestion of analytics data while protecting the backend infrastructure from overload under high traffic or burst scenarios. Understanding these limits and best practices will help you build resilient event capturing integrations that scale gracefully with your application's volume.
+
+---
+
+## Understanding Rate Limiting in PostHog Go
+
+Rate limiting controls the flow of data sent to PostHog servers, preventing excessive request rates that could overwhelm the system or degrade performance. It applies at two levels:
+
+- **Client-Side Limits:** Applied within the PostHog Go SDK to batch events and slow down ingestion attempts when thresholds are exceeded.
+- **Server-Side Limits:** Enforced by the PostHog ingestion APIs to cap the total traffic from all clients for a project or organization.
+
+These layers work together to maximize data reliability without dropping important insights.
+
+### Client-Side Rate Limits and Event Batching
+
+PostHog Go buffers events locally and sends them in batches to reduce the per-event overhead and requests frequency. This approach optimizes network usage and conforms to ingestion quotas.
+
+- Events are collected until a batch size or timeout threshold is reached.
+- Under heavy load, batching increases to smooth traffic spikes.
+- If the client detects server throttling or network errors, it backs off its send frequency.
+
+This buffering and rate control ensure your integration does not flood the network or the server with too many small event captures.
+
+### Server-Side Rate Limits and Quotas
+
+On the PostHog platform side, API endpoints apply rate limits to protect infrastructure and enforce fair usage:
+
+- API calls exceeding the project quota receive HTTP `429 Too Many Requests` responses.
+- Quotas are typically measured in events per second or per month, depending on your subscription or self-hosted configuration.
+- These limits apply regardless of your client-side batching and retry logic.
+
+<Note>
+Server-side rate limiting depends on your PostHog environment setup; please consult your PostHog Cloud plan details or self-hosting documentation for precise quotas.
+</Note>
+
+---
+
+## Best Practices for Managing Rate Limits
+
+Integrating PostHog Go while anticipating rate limits and quota constraints involves practical strategies to maximize event throughput and data quality.
+
+### 1. Use Event Batching Effectively
+
+Batching reduces request counts by grouping multiple events into one API call. Configure the client with sensible batch sizes and flush intervals based on your app's event volume:
+
+```go
+client, err := posthog.NewWithConfig("your_api_key", posthog.Config{
+    BatchSize: 50,           // Send events in batches of 50
+    FlushInterval: 5 * time.Second, // Flush events every 5 seconds
+})
+```
+
+> Adjust `BatchSize` and `FlushInterval` considering your traffic pattern and acceptable latency.
+
+### 2. Implement Exponential Backoff on Failures
+
+When receiving HTTP `429` errors or network timeouts, PostHog Go automatically slows down request rates using backoff and retry mechanisms. Do not disable this behavior to avoid dropped events.
+
+### 3. Monitor SDK Logs and Metrics
+
+Enable logging in the SDK to detect when your integration encounters rate limit throttling:
+
+```go
+client, err := posthog.NewWithConfig("your_api_key", posthog.Config{
+    LogLevel: posthog.LogLevelInfo,
+})
+```
+
+Use logs to identify peak times and tune your batching or event generation accordingly.
+
+### 4. Avoid Sending Unnecessary Events
+
+Filter or sample events in your application before sending them to PostHog to reduce volume and stay within quotas.
+
+### 5. Leverage Server-Side Sampling
+
+If your use case allows, configure server-side sampling rules in PostHog to reduce transmitted event counts without modifying your backend code.
+
+---
+
+## How Rate Limiting Affects SDK Behavior Under Load
+
+When event traffic surges:
+
+- **Batch sizes may temporarily increase** to aggregate events and reduce requests.
+- **Flush intervals may adjust** automatically to balance latency with throughput.
+- When the server indicates overload (via HTTP `429`), the SDK pauses sending and retries after a delay.
+
+This adaptive behavior protects your application's performance and data integrity.
+
+<Info>
+PostHog Go ensures events are either queued for delivery or properly retried, preventing silent data loss.
+</Info>
+
+---
+
+## Reference: HTTP Status Codes Related to Rate Limits
+
+| Status Code | Meaning                             | Handling Recommendation                 |
+|-------------|-----------------------------------|----------------------------------------|
+| 200         | Success                           | Event captured successfully.            |
+| 400         | Bad Request                      | Check request payload and parameters.  |
+| 401         | Unauthorized                    | Verify API key or credentials.          |
+| 429         | Too Many Requests (rate limit) | Backoff and retry after delay.          |
+| 500         | Server Error                    | Retry with backoff, may be transient.  |
+
+---
+
+## Troubleshooting Common Rate Limiting Issues
+
+<AccordionGroup title="Rate Limiting & Quotas Troubleshooting">
+<Accordion title="Why am I seeing HTTP 429 errors?">
+Exceeding your PostHog project's quota or hitting very high event rates from your client can cause 429 errors. Adjust batching settings, throttle event emission in your app, and check your plan limits.
+</Accordion>
+<Accordion title="Are some events dropped when the client is overloaded?">
+PostHog Go queues events and retries when possible. In extreme overload conditions or when the process terminates abruptly, some events may be lost. To minimize this, ensure graceful shutdown by flushing the client.
+
+Example:
+```go
+client.Close() // Flush any pending events before exit
+```
+</Accordion>
+<Accordion title="How to tune the SDK for high-volume applications?">
+Increase batch sizes and flush intervals to optimize throughput. Monitor logs for throttling and errors. Consider sharding event streams or sampling events to stay within limits.
+</Accordion>
+</AccordionGroup>
+
+---
+
+## Scalability Tips for Large Integrations
+
+- **Use asynchronous event capture** to avoid blocking main application threads.
+- **Distribute event ingestion across multiple client instances** if feasible.
+- **Implement custom queuing mechanisms** if extreme control over event delivery is needed.
+- **Regularly review your PostHog project's quotas and upgrade plans as needed.**
+
+---
+
+## Summary
+
+Rate limiting and quotas are critical parts of the PostHog Go client experience, ensuring stable analytics ingestion at scale. By leveraging client-side batching, respecting server-imposed quotas, and tuning your configuration, you will achieve reliable data delivery and actionable insights without service interruptions.
+
+For further deep dives, visit related documentation on [Client Initialization & Authentication](/api-reference/core-entities/client-initialization-auth) and [Event Capture](/api-reference/core-entities/capture-events).
+
+---

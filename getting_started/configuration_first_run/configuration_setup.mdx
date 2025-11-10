@@ -1,0 +1,197 @@
+---
+title: "Configuration Setup"
+description: "Learn how to configure the PostHog Go client with your unique API keys and endpoints. Understand environment variable options, .env setup, and how configuration impacts client behavior for both analytics and feature flags."
+---
+
+# Configuration Setup
+
+Learn how to configure the PostHog Go client to connect to your PostHog instance using your API keys and endpoints. This guide covers environment variables, `.env` file setup, and how the configuration options influence the behavior of the client for both analytics tracking and feature flag evaluation.
+
+---
+
+## 1. Prerequisites
+
+Before configuring the PostHog Go client, ensure you have the following:
+
+- Your **Project API Key** (also known as the `POSTHOG_PROJECT_API_KEY`), which is specific to your PostHog project and used for event ingestion and anonymous analytics.
+- Your **Personal API Key** (`POSTHOG_PERSONAL_API_KEY`), mainly used for advanced features such as local evaluation of feature flags.
+- The URL of your PostHog server (`POSTHOG_ENDPOINT`), especially important if you use a self-hosted PostHog instance. For PostHog Cloud users, this can be omitted as it defaults to `https://app.posthog.com`.
+
+<Resource>
+Refer to the `/setup` page of your PostHog project to retrieve your API keys.
+</Resource>
+
+---
+
+## 2. Environment Variable Configuration
+
+The PostHog Go client reads configuration primarily through environment variables, which can be set directly in your OS environment or within a `.env` file.
+
+### Key Environment Variables
+
+| Variable               | Description                                                       | Example                              |
+|------------------------|-------------------------------------------------------------------|------------------------------------|
+| `POSTHOG_PROJECT_API_KEY` | Your project's public API key for event capture                 | `phc_12345xyz`                     |
+| `POSTHOG_PERSONAL_API_KEY`| Your personal API key for feature flag local evaluation          | `phx_abcde67890`                   |
+| `POSTHOG_ENDPOINT`       | The base URL of the PostHog server (omit for `posthog.com`)      | `http://localhost:8000`            |
+
+### Setting Up `.env`
+
+Create a `.env` file in your project root folder, based on the provided `.env.example` template:
+
+```env
+# Copy this file as .env and fill in your details
+POSTHOG_PROJECT_API_KEY=phc_your_project_api_key_here
+POSTHOG_PERSONAL_API_KEY=phx_your_personal_api_key_here
+POSTHOG_ENDPOINT=http://localhost:8000
+```
+
+Load this `.env` file with your application startup, or export environment variables manually when launching your app.
+
+<Tip>
+Using a `.env` file simplifies managing multiple environment-specific configurations (development, staging, production).
+</Tip>
+
+---
+
+## 3. Configuring the Client Programmatically
+
+Alternatively, you can configure the PostHog client directly in your Go code by passing a configuration struct as follows:
+
+```go
+import (
+	"github.com/PostHog/posthog-go"
+	"log"
+)
+
+func main() {
+	client, err := posthog.NewWithConfig("YOUR_PROJECT_API_KEY", posthog.Config{
+		PersonalApiKey: "YOUR_PERSONAL_API_KEY",
+		Endpoint:       "http://localhost:8000",
+	})
+	if err != nil {
+		log.Fatalf("Failed to create PostHog client: %v", err)
+	}
+	defer client.Close()
+	
+	// Client is now configured and ready to use
+}
+```
+
+### Configuration Fields Explained
+
+- `PersonalApiKey` (string): Required for local feature flag evaluation and other advanced features, set your personal API key here.
+- `Endpoint` (string): URL of your PostHog server; use this if you are not using the default hosted service.
+
+<Note>
+Ensure your keys are kept secret and not exposed in public repositories.
+</Note>
+
+---
+
+## 4. How Configuration Affects Client Behavior
+
+### Analytics Events
+
+- The **Project API Key** authenticates event data sent to your PostHog instance.
+- The `Endpoint` defines where event data is sent, whether to PostHog Cloud or your own server.
+
+### Feature Flags & Remote Config
+
+- The **Personal API Key** enables **local evaluation** of feature flags, reducing latency and reliance on network calls for flag status.
+- If local evaluation is disabled or keys are missing, flag status requests fallback to the PostHog server API.
+
+### Timeout & Request Behavior
+
+- Configuration can include custom timeouts for feature flag requests to avoid blocking your application during network delays.
+
+<Tip>
+For feature flag local evaluation, a valid personal API key and endpoint pointing to your PostHog server is essential.
+</Tip>
+
+---
+
+## 5. Verifying Your Configuration
+
+After setting up, confirm the client is configured correctly by fetching a simple feature flag or capturing a test event:
+
+```go
+// Check feature flag status
+enabled, err := client.IsFeatureEnabled(posthog.FeatureFlagPayload{
+	Key:        "your-feature-flag-key",
+	DistinctId: "user-123",
+})
+if err != nil {
+	log.Fatalf("Error fetching feature flag: %v", err)
+}
+log.Printf("Feature enabled: %v", enabled)
+```
+
+Or capture a test event:
+
+```go
+err = client.Capture(posthog.Capture{
+	DistinctId: "user-123",
+	Event:      "test-event",
+})
+if err != nil {
+	log.Fatalf("Failed to capture event: %v", err)
+}
+```
+
+Successful completion without errors indicates your configuration is correct.
+
+---
+
+## 6. Troubleshooting Common Issues
+
+<AccordionGroup title="Troubleshooting Configuration Issues">
+<Accordion title="Missing or Invalid API Keys">
+If API keys are missing or incorrect, your client will fail to authenticate. Double-check your `POSTHOG_PROJECT_API_KEY` and `POSTHOG_PERSONAL_API_KEY` values.
+- Verify keys from your PostHog project settings.
+- Avoid trailing spaces or invalid characters.
+</Accordion>
+
+<Accordion title="Incorrect Endpoint URL">
+Make sure the endpoint URL is correct and accessible:
+- For PostHog Cloud users, omit the endpoint or set it to `https://app.posthog.com`.
+- For self-hosted, ensure the URL includes the proper protocol (`http://` or `https://`) and port if required.
+- Test connectivity using `curl` or browser.
+</Accordion>
+
+<Accordion title="Feature Flags Not Evaluating Locally">
+If feature flags do not evaluate locally:
+- Confirm the personal API key is set.
+- Ensure local evaluation is enabled in your configuration.
+- Check network connectivity to the endpoint.
+- Review error messages returned by `IsFeatureEnabled`.
+</Accordion>
+
+<Accordion title="Network Requests Timing Out or Failing">
+- Increase timeout values in the client configuration.
+- Verify firewall or proxy settings allow outbound connections.
+- Check server logs for inbound request errors.
+</Accordion>
+</AccordionGroup>
+
+---
+
+## 7. Next Steps
+
+- After configuring your client, continue with [First Usage: Quickstart Example](/getting_started/configuration_first_run/first_usage_quickstart) to learn how to perform your initial event capture and feature flag evaluation.
+- Use [Validating Your Integration](/getting_started/configuration_first_run/validating_integration) to check your setup actively.
+- Explore [Using Feature Flags](/guides/core-workflows/using-feature-flags) for advanced flag management techniques.
+
+---
+
+## References
+
+- [.env example file](examples/.env.example) — Template for environment variables configuration.
+
+---
+
+<Check>Ensure your API keys are kept secure and your endpoint URL matches your hosting setup to guarantee correct PostHog client functionality.</Check>
+
+---
+
+For detailed usage and troubleshooting, see related guides and the [PostHog Go client GitHub repository](https://github.com/PostHog/posthog-go).

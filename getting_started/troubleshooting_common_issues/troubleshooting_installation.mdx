@@ -1,0 +1,220 @@
+---
+title: "Troubleshooting Setup & Installation"
+description: "Find solutions to frequent installation and setup problems, such as missing dependencies, incorrect API keys, or version mismatches. This page helps users quickly resolve issues that block progress."
+---
+
+# Troubleshooting Setup & Installation
+
+This guide helps you swiftly identify and resolve the most common issues encountered when installing and setting up the PostHog Go client. Whether you're facing missing dependencies, API key problems, or version conflicts, these actionable solutions will get you back on track quickly.
+
+---
+
+## 1. Common Installation Issues
+
+### 1.1 Missing Dependencies
+
+The PostHog Go client relies on certain Go modules and system tools to function properly.
+
+**How to fix:**
+
+1. Ensure you have Go installed and properly configured (version 1.16+ recommended).
+2. Run the following command in your project directory to fetch all required dependencies:
+
+```bash
+go get -v -t ./...
+```
+
+3. If you see errors related to missing packages, verify your `go.mod` and `go.sum` files are present and correct.
+
+4. If using vendor mode, make sure to run `go mod vendor` and commit the vendor directory.
+
+**Tip:** The `Makefile` includes a `dependencies` target that automates this:
+
+```bash
+make dependencies
+```
+
+
+### 1.2 Compilation Errors
+
+Compilation errors often stem from incompatible Go versions or syntax issues.
+
+**Resolution steps:**
+
+- Confirm your Go environment is set to version 1.16 or newer:
+
+```bash
+go version
+```
+
+- Clean previous builds and caches:
+
+```bash
+go clean -cache -modcache -i -r
+```
+
+- Rebuild the project using the Makefile:
+
+```bash
+make build
+```
+
+- Investigate error output carefully for specific missing symbols or packages.
+
+
+## 2. Configuration and Setup Problems
+
+### 2.1 Invalid or Missing API Keys
+
+Both a project API key and a personal API key may be required depending on features used.
+
+**How to check and fix:**
+
+- Verify your project API key (`POSTHOG_PROJECT_API_KEY`) is correctly set and active in your PostHog instance.
+- For advanced features like local evaluation of feature flags, a *personal API key* (`POSTHOG_PERSONAL_API_KEY`) is also necessary.
+- Confirm these keys are correctly configured in your environment or `.env` file as shown in the example below:
+
+```ini
+# .env example
+POSTHOG_PROJECT_API_KEY=phc_your_project_api_key_here
+POSTHOG_PERSONAL_API_KEY=phx_your_personal_api_key_here
+POSTHOG_ENDPOINT=http://localhost:8000
+```
+
+- When initializing the client, double-check keys are passed correctly:
+
+```go
+client, err := posthog.NewWithConfig("YOUR_PROJECT_API_KEY", posthog.Config{
+    PersonalApiKey: "YOUR_PERSONAL_API_KEY",
+    Endpoint:       "http://your-posthog-instance",
+})
+```
+
+<Tip>
+Always keep your API keys secure and do not expose personal API keys in public repositories.
+</Tip>
+
+### 2.2 Endpoint Configuration Errors
+
+Incorrect or unreachable PostHog server endpoints will prevent data submission and flag evaluation.
+
+**How to verify:**
+
+- Confirm the `Endpoint` URL matches your PostHog cloud or self-hosted instance.
+- Test connectivity with curl:
+
+```bash
+curl -I http://your-posthog-instance
+```
+
+- If using self-hosted, check for firewall/port blocking issues.
+
+- Remove trailing slashes or erroneous URL fragments.
+
+
+### 2.3 Version Mismatches
+
+Using incompatible versions of the PostHog Go client or PostHog platform can cause failures.
+
+**Best practices:**
+
+- Keep your client updated to the latest version compatible with your PostHog instance.
+- Use semantic versioning tags in module imports.
+- Check release notes for breaking changes: [PostHog Go Releases](https://github.com/PostHog/posthog-go/releases)
+
+
+## 3. Debugging Feature Flag Issues
+
+### 3.1 Feature Flag Data Not Fetching or Loading
+
+If feature flags do not load or evaluate correctly, it could be related to:
+
+- Network timeouts or server unavailability.
+- Insufficient permissions on API keys.
+- Configuration `FeatureFlagRequestTimeout` too low.
+
+**How to troubleshoot:**
+
+- Increase the timeout in your client config:
+
+```go
+client, err := posthog.NewWithConfig("API_KEY", posthog.Config{
+    FeatureFlagRequestTimeout: 5 * time.Second,
+    // other configs
+})
+```
+
+- Check client logs for messages about fetching errors.
+- Confirm API keys have necessary roles to access feature flag endpoints.
+
+### 3.2 Local Evaluation Errors
+
+Local evaluation relies on downloaded flag definitions and cohorts. Errors can occur if:
+
+- Flags depend on other flags that are missing or not fetched.
+- Cohorts or property filters include static or unavailable data.
+
+**Resolution:**
+
+- Fall back to remote evaluation by setting `OnlyEvaluateLocally` to false.
+- Ensure your personal API key is valid for local evaluation.
+- Review complex dependency chains in flags to simplify evaluation.
+
+
+## 4. Logging and Error Reporting
+
+Enable logging integration to capture internal errors and performance issues.
+
+**Set up a standard logger:**
+
+```go
+import (
+    "log"
+    "github.com/PostHog/posthog-go"
+)
+
+logger := posthog.StdLogger(log.New(os.Stdout, "posthog", log.LstdFlags), true)
+
+client, err := posthog.NewWithConfig("API_KEY", posthog.Config{
+    Logger: logger,
+    // other config
+})
+```
+
+Review logged messages for detailed reasons behind failures.
+
+
+## 5. Recovery & Support
+
+### 5.1 Resetting Feature Flags Fetch
+
+If flags appear stale or corrupted:
+
+```go
+client.ReloadFeatureFlags()
+```
+
+This forces the client to fetch fresh flag definitions.
+
+### 5.2 Common Command Summary
+
+| Issue                          | Command / Action                       |
+| ------------------------------|-------------------------------------|
+| Fetch dependencies             | `go get -v -t ./...`                  |
+| Build and test project         | `make build`                         |
+| Increase flag fetch timeout    | Set `FeatureFlagRequestTimeout` in config |
+| Reload feature flags           | `client.ReloadFeatureFlags()`         |
+
+
+### 5.3 Getting Help
+
+- Consult the [PostHog Go GitHub repository](https://github.com/PostHog/posthog-go) for issues and pull requests.
+- Read through the [integration with PostHog](https://posthog.com/docs/integration) documentation.
+- Join the PostHog community Slack for assistance.
+
+---
+
+By systematically following this troubleshooting guide, you will resolve most setup and installation obstacles without delay, ensuring smooth analytics and feature flag integration with PostHog Go.
+
+
+---

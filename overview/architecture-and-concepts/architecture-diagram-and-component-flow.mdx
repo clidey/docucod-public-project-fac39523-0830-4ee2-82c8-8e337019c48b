@@ -1,0 +1,178 @@
+---
+title: "Architecture & Component Flow"
+description: "Describes the overall architecture using a high-level diagram—highlighting how the client interacts with your Go application, environment variables, API endpoints, and PostHog’s backend. Explains the data journey from event generation to remote analytics storage and feature flag evaluation, including local and remote options. Provides a mermaid diagram for visual clarity."
+---
+
+# Architecture & Component Flow
+
+## Understanding the PostHog Go Client Architecture
+
+Welcome to the definitive guide on the architecture and component flow of the PostHog Go client. This page provides a high-level view of how your Go application interacts with PostHog's systems, from event tracking to feature flag evaluation. By understanding this flow, you can optimize integration, troubleshoot issues faster, and make smarter decisions about feature flagging and analytics.
+
+---
+
+## How the PostHog Go Client Fits Into Your Application
+
+At its core, the PostHog Go client is designed to seamlessly connect your Go application with PostHog's analytics and feature flagging infrastructure. It bridges your application's runtime with PostHog’s backend services and runtime APIs using configuration driven by environment variables. 
+
+This page explains the journey of data — from the moment an event happens in your service or a feature flag is evaluated, all the way through to the analytics backend and feature flag evaluation endpoints.
+
+### Why This Matters
+
+- **Real-Time Feature Control:** Your application can tailor user experiences dynamically by evaluating feature flags locally or remotely.
+- **Reliable Event Tracking:** Events generated in your app reliably flow into PostHog’s backend with support for compression and batching.
+- **Flexible Configuration:** Environment variables streamline setup and tuning without code changes.
+
+---
+
+## High-Level Component Flow
+
+### Core Components Involved
+
+- **Go Application & Client:** Your service running PostHog’s Go client to send events and evaluate flags.
+- **Environment Variables:** Define API keys and endpoints to configure the client behavior.
+- **API Endpoints:** Key `/flags` and `/api/feature_flag/local_evaluation` endpoints process feature flag data and evaluations.
+- **PostHog Backend:** Handles ingestion, stores events, manages feature flags, and evaluates complex flag logic.
+
+### Flow of Data and Requests
+
+1. **Event Generation:** Events triggered within your Go application are captured via the PostHog client.
+2. **Event Transmission:** Events are sent asynchronously to PostHog's ingestion endpoint, supporting compression algorithms such as gzip and lz64 for efficient transport.
+3. **Feature Flag Fetching:** The client periodically fetches feature flag definitions from the `/flags` endpoint.
+4. **Local Feature Flag Evaluation:** Flags can be evaluated locally within your app using the fetched definitions for instant, offline-capable decisions.
+5. **Remote Evaluation Fallback:** If local evaluation is incomplete or unavailable, the client reaches out to `/api/feature_flag/local_evaluation` for up-to-date flag resolutions.
+6. **Analytics Storage:** Events and flag evaluation data flow into PostHog’s backend for aggregation and analysis.
+
+---
+
+## Visual Diagram: PostHog Go Client Architecture
+
+```mermaid
+flowchart TD
+  subgraph YourGoApp
+    Client["PostHog Go Client"]
+  end
+
+  subgraph Config
+    EnvVars["Environment Variables"]
+  end
+
+  subgraph IngestionAPI
+    EventAPI["/i/v0/e/ (Event Ingestion Endpoint)"]
+  end
+
+  subgraph FeatureFlagAPI
+    FlagsAPI["/flags (Fetch Feature Flags)"]
+    LocalEvalAPI["/api/feature_flag/local_evaluation (Flag Evaluation)"]
+  end
+
+  subgraph PostHogBackend
+    AnalyticsDB[("Analytics Storage")]
+    FeatureFlagStore[("Feature Flag Storage & Logic")]
+  end
+
+  EnvVars --> Client
+  Client -->|Send Events (compressed)| EventAPI
+  Client -->|Fetch Feature Flags Periodically| FlagsAPI
+  Client -->|Local Evaluation or Fallback| LocalEvalAPI
+  EventAPI --> AnalyticsDB
+  FlagsAPI --> FeatureFlagStore
+  LocalEvalAPI --> FeatureFlagStore
+
+  classDef env fill:#f9f,stroke:#333,stroke-width:1px;
+  classDef api fill:#def,stroke:#333,stroke-width:1px;
+  classDef backend fill:#fed,stroke:#333,stroke-width:1px;
+
+  class EnvVars env;
+  class EventAPI,FlagsAPI,LocalEvalAPI api;
+  class AnalyticsDB,FeatureFlagStore backend;
+```
+
+This diagram illustrates the interaction points: your application, configured by environment variables, sending compressed events to PostHog’s ingestion endpoint, while regularly fetching and locally evaluating feature flags using the feature flag APIs.
+
+---
+
+## Detailed Data Journey
+
+### Event Flow
+
+- When user actions happen inside your Go application, the client captures those as events.
+- Events are buffered and batch-uploaded asynchronously to the `/i/v0/e/` endpoint in efficient compressed formats, reducing network overhead.
+- The PostHog backend ingests these events into a durable analytics storage system for real-time and historical analysis.
+
+### Feature Flag Flow
+
+- Your application fetches the full set of feature flags by hitting the `/flags` endpoint, obtaining comprehensive flag definitions, rollout conditions, and variants.
+- Using these definitions, local evaluation makes immediate feature flag decisions based on user properties, groups, and contextual data.
+- If the flag cannot be determined locally—say, due to complex static cohorts or missing flag dependencies—the client falls back to remote evaluation via `/api/feature_flag/local_evaluation`.
+- This remote endpoint returns the resolved variant or boolean evaluation, ensuring your app’s experience remains consistent and up-to-date.
+
+### Configuration with Environment Variables
+
+The client’s key configuration and behavior rely on environment variables, including:
+
+- API keys for authentication.
+- Endpoint URLs to configure communication with your PostHog instance.
+- Flags to enable specific features like automatic capture or fallback mechanisms.
+
+Adjusting these variables tailors your client to your workload and reliability requirements.
+
+---
+
+## Practical Tips & Best Practices
+
+- **Use Local Evaluation Whenever Possible:** Local evaluation reduces latency by avoiding network calls during flag checks, resulting in faster response times.
+
+- **Implement Fallback Logic:** Always allow fallback to remote evaluation to handle flags reliant on static cohorts or dependencies you cannot replicate locally.
+
+- **Monitor Environment Configurations:** Environment variables drive much of the client’s behavior; maintain consistency across deployment environments.
+
+- **Compress Event Data:** Leverage supported compression options to minimize bandwidth usage while sending event data.
+
+- **Handle Timeouts and Errors Gracefully:** In situations where the backend is unreachable, the client can continue local evaluation, minimizing user disruption.
+
+---
+
+## Troubleshooting Common Issues
+
+- **Delayed or Missing Feature Flags:** Check environment variables and ensure periodic flag fetching occurs without timing out.
+
+- **Incorrect Flag Evaluations:** Confirm that local evaluation datasets are fresh and that fallbacks are operational.
+
+- **Event Loss or Delay:** Verify that events are being compressed and sent correctly to the ingestion endpoint and that network conditions are stable.
+
+- **Flag Dependency Errors:** Complex flags with dependencies might not evaluate locally if dependencies are missing; fallback to remote evaluation is needed.
+
+---
+
+## Next Steps
+
+To put this architecture in action, proceed to:
+
+- **[Getting Started: Quickstart & Example Workflows](overview/features-and-integration/quickstart-and-examples)** to begin integrating the client.
+- **[Using Feature Flags](guides/core-workflows/using-feature-flags)** to understand workflow-driven flag usage.
+- **[Configuration Setup](getting_started/configuration_first_run/configuration_setup)** to tailor client parameters.
+
+Understanding this architecture empowers you to fully leverage the PostHog Go client, ensuring reliable analytics and flexible feature management.
+
+---
+
+For a foundational understanding of what the PostHog Go client is, see [What is PostHog Go?](overview/introduction-and-value/what-is-posthog-go).
+
+
+---
+
+## References
+
+- PostHog Go Client GitHub: [https://github.com/PostHog/posthog-go](https://github.com/PostHog/posthog-go)
+- API Endpoints:
+  - `/flags` for feature flag retrieval
+  - `/api/feature_flag/local_evaluation` for remote feature flag evaluation
+  - `/i/v0/e/` for event ingestion
+
+
+---
+
+<Info>
+The understanding of local vs remote feature flag evaluation and fallback mechanisms is crucial for reliable and performant usage of PostHog Go. Always ensure your client has the correct environment variable configuration and network access to PostHog endpoints.
+</Info>

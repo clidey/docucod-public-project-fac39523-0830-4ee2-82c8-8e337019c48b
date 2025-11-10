@@ -1,0 +1,141 @@
+---
+title: "System Requirements"
+description: "Understand the minimum Go version and dependencies required to use PostHog Go effectively. This page ensures your environment is compatible and ready for integration."
+---
+
+# System Requirements
+
+Ensure your development environment meets the necessary prerequisites to effectively integrate and use the PostHog Go client. This page outlines the minimum Go version, dependencies, and other system criteria to guarantee a smooth setup.
+
+---
+
+## 1. Go Version Compatibility
+
+- **Required Go Version:** PostHog Go requires **Go 1.18** or later to ensure full compatibility and leverage modern Go language features.
+
+  ```bash
+  go version
+  # Expected output: go version go1.18 or newer
+  ```
+
+- If you have an older Go version installed, update Go before proceeding:
+
+  - Download the latest Go from the official site: [https://golang.org/dl/](https://golang.org/dl/)
+  - Follow your OS-specific installation instructions.
+
+
+## 2. Operating System
+
+- PostHog Go is platform-independent and works on any OS that supports Go 1.18+, including:
+  - Linux
+  - macOS
+  - Windows
+
+- For development and testing, using Linux or macOS is recommended for the best tooling support.
+
+
+## 3. Network and Permissions
+
+- **Internet Connectivity:** Required for communication with the PostHog analytics endpoint unless you are using a self-hosted PostHog server configured on your local network.
+
+- **Firewall and Ports:** Ensure outbound HTTP/HTTPS requests to PostHog endpoints (default https://app.posthog.com or your custom self-hosted endpoint) are not blocked.
+
+- **API Keys:** You must have a valid **Project API Key** to initialize the PostHog Go client. Additionally, a **Personal API Key** is required for certain feature flag operations and advanced configurations.
+
+
+## 4. Required Dependencies
+
+- PostHog Go is a Go module and manages its dependencies via Go Modules. Running `go get` will install any necessary packages automatically.
+
+- No external non-Go dependencies are required for the basic usage of PostHog Go.
+
+- For advanced functionalities like feature flag evaluation with local computation, ensure your environment allows network connections to PostHog's feature flag APIs.
+
+
+## 5. Optional Development Tools
+
+- **Go Modules:** Ensure Go modules support is enabled (`GO111MODULE=on` by default in Go 1.18+).
+
+- **Testing Framework:** The PostHog Go client uses Go's standard testing package and integrates with `stretchr/testify` for tests. You may want to include it if contributing or extending.
+
+  ```bash
+  go get github.com/stretchr/testify
+  ```
+
+- **Logging:** PostHog Go supports custom logging interfaces. Familiarity with Go's `log` package is beneficial for debugging.
+
+
+## 6. Environment Variables and Configuration
+
+- No specific environment variables are mandatory, but you must configure the client with your API keys and endpoint as per documentation in the **Configuration Setup** page.
+
+
+---
+
+## Verification Steps
+
+Once your environment meets these requirements:
+
+1. Check your Go version:
+
+   ```bash
+   go version
+   ```
+
+2. Initialize a sample Go module (if starting a new project):
+
+   ```bash
+   go mod init example.com/myproject
+   go get github.com/PostHog/posthog-go
+   ```
+
+3. Build a simple program importing the PostHog Go client to verify it compiles without errors.
+
+
+---
+
+## Troubleshooting Common System Issues
+
+<AccordionGroup title="System Compatibility and Setup Issues">
+<Accordion title="Go Version Too Old">
+If running `go version` shows a Go release older than 1.18:
+- Update Go to 1.18 or newer.
+- Remove any old Go binaries from your PATH.
+- Restart your terminal to ensure the new version is active.
+</Accordion>
+<Accordion title="Network Connectivity Failures">
+- Confirm your firewall allows outbound connections to PostHog endpoints.
+- Verify internet access using `curl` or `ping`.
+- For behind-proxy environments, ensure proxy settings are configured.
+</Accordion>
+<Accordion title="Missing API Keys or Permissions">
+- Retrieve your Project API Key from the PostHog dashboard.
+- For feature flag evaluation requiring personal API keys, verify you have the correct key associated with your user account.
+- Confirm your API keys have not expired or been revoked.
+</Accordion>
+<Accordion title="Dependency Module Issues">
+- Run `go mod tidy` to automatically resolve and clean dependencies.
+- Ensure your Go environment variables like `GOPRIVATE` are set correctly if using private modules.
+- Clear Go module cache by running `go clean -modcache` if corrupted.
+</Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+- After confirming system readiness, proceed to the [Installation Guide](/getting_started/prerequisites_installation/installation) for step-by-step setup instructions.
+
+- For initial client configuration, see the [Configuration Setup](/getting_started/configuration_first_run/configuration_setup) page.
+
+- Explore example workflows in [First Usage: Quickstart Example](/getting_started/configuration_first_run/first_usage_quickstart).
+
+
+<Check>
+Your environment meets the minimum PostHog Go requirements if:
+
+- Go version is 1.18 or newer.
+- Network connectivity to PostHog endpoints is established.
+- API keys are available and valid.
+- Dependencies are installed via Go modules.
+</Check>

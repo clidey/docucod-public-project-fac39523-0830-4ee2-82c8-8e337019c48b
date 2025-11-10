@@ -1,0 +1,210 @@
+---
+title: "First Usage: Quickstart Example"
+description: "Walk through a step-by-step example of sending your first event or identifying a user with PostHog Go. This page features concise, practical code snippets and real configuration values, taking you from zero to a working integration."
+---
+
+# First Usage: Quickstart Example
+
+This guide walks you through sending your first event and identifying a user using the PostHog Go client. You will set up a minimal configuration, send an example capture event, and verify your integration is working correctly—all with practical code snippets.
+
+---
+
+## 1. Prerequisites
+
+Before proceeding, ensure you have the following:
+
+- **Go environment**: Go 1.16 or later installed on your system.
+- **PostHog project API key**: Obtain this from your PostHog project settings. It starts with `phc_...`.
+- **PostHog endpoint URL**: For PostHog Cloud, use `https://app.posthog.com`. For self-hosted, use your instance's URL.
+
+<Tip>
+Make sure your API key has the right scopes for event capture and feature flag evaluation.
+</Tip>
+
+## 2. Initialize the PostHog Client
+
+Start by importing the PostHog Go client and creating a client instance with your API key and endpoint.
+
+```go
+package main
+
+import (
+	"log"
+	"time"
+
+	posthog "github.com/PostHog/posthog-go"
+)
+
+func main() {
+	// Step 1: Create a PostHog client
+	client, err := posthog.NewWithConfig("phc_your_project_api_key", posthog.ClientConfig{
+		Endpoint: "https://app.posthog.com",
+	})
+	if err != nil {
+		log.Fatalf("Failed to create PostHog client: %v", err)
+	}
+	defer client.Close()
+
+	// Proceed with sending events or identifying users...
+}
+```
+
+<Check>
+Replace `phc_your_project_api_key` and `https://app.posthog.com` with your actual credentials.
+</Check>
+
+## 3. Send Your First Event
+
+To track user actions, use the `Capture` method. Here’s how to send a simple event named "Download" with some context properties.
+
+```go
+err = client.Enqueue(posthog.Capture{
+	DistinctId: "123456", // Unique user or session identifier
+	Event:      "Download",
+	Properties: posthog.NewProperties().
+		Set("application", "PostHog Go").
+		Set("platform", "macos").
+		Set("version", "1.0.0"),
+	Timestamp: time.Now(),
+})
+if err != nil {
+	log.Fatalf("Failed to enqueue event: %v", err)
+}
+
+// Flush events to ensure they're sent
+client.Flush()
+
+log.Println("Event sent successfully")
+```
+
+<Tip>
+
+- Use a consistent `DistinctId` to identify a user or device.
+- The `Properties` map lets you attach useful metadata to your events.
+- `Flush()` forces the client to immediately send any buffered events.
+
+</Tip>
+
+## 4. Identify a User
+
+You can link events to a specific user identity using `Identify`. This helps associate data with known users.
+
+```go
+err = client.Enqueue(posthog.Identify{
+	DistinctId: "123456",
+	Properties: posthog.NewProperties().
+		Set("email", "user@example.com").
+		Set("plan", "pro"),
+})
+if err != nil {
+	log.Fatalf("Failed to enqueue identify event: %v", err)
+}
+client.Flush()
+
+log.Println("User identification sent successfully")
+```
+
+<Note>
+Always identify the user before capturing user-specific events when possible.
+</Note>
+
+## 5. Verify the Integration
+
+Once you have sent your events and identified users, verify them in your PostHog dashboard:
+
+1. Navigate to your PostHog project’s Events page.
+2. Look for the "Download" event associated with your `distinct_id` (`123456` in this example).
+3. Confirm that your user properties (like `email` and `plan`) are logged as expected.
+
+<Warning>
+If no events appear:
+- Confirm your API key and endpoint are correct.
+- Verify your network allows outbound HTTPS to PostHog.
+- Check your client logs for errors.
+</Warning>
+
+## 6. Common Pitfalls & Tips
+
+<AccordionGroup title="Best Practices and Troubleshooting">
+<Accordion title="Use Consistent Distinct IDs">
+User and event tracking becomes meaningful only if you consistently use the same `distinct_id` to represent a user or session.
+</Accordion>
+<Accordion title="Flush Events Before Application Exit">
+Always call `client.Flush()` before your program exits to ensure all events are sent.
+</Accordion>
+<Accordion title="Handle Client Errors Gracefully">
+Check and handle errors when enqueuing events or identifying users to avoid losing data silently.
+</Accordion>
+<Accordion title="Avoid Blocking the Main Thread">
+Sending events is asynchronous, but flushing is blocking; call flush wisely to avoid slowing your app.
+</Accordion>
+</AccordionGroup>
+
+## 7. Next Steps
+
+- Explore capturing complex events with additional properties and timestamps.
+- Learn about feature flag evaluation using the client.
+- Dive into user aliasing and group identification for richer user profiles.
+- Review [Troubleshooting Setup & Installation](../troubleshooting_common_issues/troubleshooting_installation) if you encounter problems.
+
+---
+
+For detailed configuration options and advanced use cases, refer to the [Configuration Setup](../configuration_first_run/configuration_setup) and [Integrating with the PostHog Platform](../../overview/features-and-integration/integration-with-posthog) pages.
+
+
+---
+
+## Example: Minimal Complete Program
+
+```go
+package main
+
+import (
+	"log"
+	"time"
+
+	posthog "github.com/PostHog/posthog-go"
+)
+
+func main() {
+	client, err := posthog.NewWithConfig("phc_your_project_api_key", posthog.ClientConfig{
+		Endpoint: "https://app.posthog.com",
+	})
+	if err != nil {
+		log.Fatalf("Failed to create PostHog client: %v", err)
+	}
+	defer client.Close()
+
+	err = client.Enqueue(posthog.Identify{
+		DistinctId: "123456",
+		Properties: posthog.NewProperties().Set("email", "user@example.com"),
+	})
+	if err != nil {
+		log.Fatalf("Failed to enqueue identify: %v", err)
+	}
+
+	err = client.Enqueue(posthog.Capture{
+		DistinctId: "123456",
+		Event:      "Download",
+		Properties: posthog.NewProperties().Set("application", "PostHog Go").Set("version", "1.0.0"),
+		Timestamp:  time.Now(),
+	})
+	if err != nil {
+		log.Fatalf("Failed to enqueue capture: %v", err)
+	}
+
+	client.Flush()
+
+	log.Println("Events sent successfully")
+}
+```
+
+Replace the API key and endpoint with your credentials to try it yourself.
+
+---
+
+<AccordionGroup title="Navigation">
+<Accordion title="Next: Validating Your Integration">
+Next: Validating Your Integration
+</Accordion>
+</AccordionGroup>

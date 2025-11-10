@@ -1,0 +1,137 @@
+---
+title: "Upgrade Checklist"
+description: "A practical, step-by-step guide to upgrading safely, with key checks for developers and maintainers. Covers updating the package, reviewing version.go, updating your code for API changes, and referencing the relevant release notes."
+---
+
+# Upgrade Checklist
+
+Upgrade your PostHog Go client confidently with this practical, user-focused checklist. This guide walks you through each step required to update the package, understand version changes, adapt your code for API updates, and verify your integration against the latest release notes.
+
+---
+
+## 1. Update the Package
+
+Begin by upgrading the PostHog Go client in your project:
+
+```bash
+# Using Go modules:
+go get github.com/PostHog/posthog-go@latest
+```
+
+After updating, run `go mod tidy` to clean up dependencies.
+
+### What to Expect
+- The package update includes bug fixes, new features, and potential breaking changes.
+- Always read the release notes for the specific version you are upgrading to.
+
+## 2. Review the `version.go` File
+
+Examine the `version.go` file within the updated package to understand the version number and any associated metadata.
+
+- **Locate `version.go`**: This file exposes the current client version.
+- **Check Version Number**: Note the semantic versioning, e.g., `v1.2.3`.
+- **Confirm Compatibility**: Ensure compatibility with your existing PostHog backend or service versions.
+
+Understanding versioning helps anticipate changes affecting your integration.
+
+## 3. Adapt Your Code for API Changes
+
+Upgrading often involves adapting your code to changes in the client API or data handling.
+
+### Key Areas to Check
+
+- **Client Initialization:** Review if constructor parameters or configuration options have changed.
+
+- **Feature Flags Usage:** 
+  - Verify the updated handling of feature flags, especially:
+    - Evaluating flags with local evaluations vs fallback to remote.
+    - Handling of multivariate flags and variant overrides.
+    - How flag group properties and person properties are passed.
+
+- **Error Handling:** Update your error management to handle new error types or behaviors, for example, error returns when dependencies in flags cannot be evaluated locally.
+
+- **Timeouts and Retries:** Adjust to any new timeout configuration parameters or retry logic in the client.
+
+### Concrete Example: Feature Flags
+
+When checking if a feature flag is enabled, you might now provide additional context such as `Groups` and `GroupProperties`:
+
+```go
+isEnabled, err := client.IsFeatureEnabled(FeatureFlagPayload{
+    Key:             "group-flag",
+    DistinctId:      "user-123",
+    Groups:          Groups{"company": "acme"},
+    GroupProperties: map[string]Properties{"company": NewProperties().Set("name", "Acme Corp")},
+})
+
+if err != nil {
+    log.Fatalf("Feature flag evaluation failed: %v", err)
+}
+if isEnabled {
+    // Proceed with feature enabled path
+}
+```
+
+### Best Practices
+- Use the new `OnlyEvaluateLocally` flag cautiously; it disables fallback and may cause missing data if dependencies fail locally.
+- Always check for errors on evaluation functions to handle fallback or offline scenarios gracefully.
+
+## 4. Reference Relevant Release Notes
+
+Comprehensive release notes accompany every version and outline:
+
+- **New features and improvements**
+- **Bug fixes**
+- **Breaking changes with migration tips**
+- **Deprecation notices**
+
+### How to Access
+- Visit the [Latest Release Notes](/changelog/release-notes/latest-release) section in the documentation.
+- Review any relevant [Breaking Changes & Deprecations](/changelog/upgrade-guidance/breaking-changes) prior to upgrading.
+
+Keeping abreast of release notes ensures smoother transitions and reduces integration surprises.
+
+## 5. Validate the Upgrade
+
+After upgrading:
+
+- Run your test suite covering feature flag logic and client usage.
+- Use known feature flags to verify evaluation results.
+- Monitor logs for any warnings about fallbacks or evaluation failures.
+
+### Troubleshooting Tips
+
+- If feature flags are not evaluating as expected, verify API keys, endpoint configurations, and that local evaluation data has been fetched.
+- Timeouts can cause fallback or failures; adjust `FeatureFlagRequestTimeout` as needed.
+- Complex flags involving dependencies or static cohorts might require API fallback; ensure your client configuration supports this.
+
+## 6. Next Steps
+
+- Explore the [Using Feature Flags](/guides/core-workflows/using-feature-flags) guide for detailed usage patterns.
+- Review [Configuration & Advanced Client Options](/api-reference/advanced-usage-errors/configuration-options) to optimize client performance.
+- Engage with changelog and upgrade guides regularly for future maintenance.
+
+---
+
+<Tip>
+Upgrade your PostHog Go client methodically: update the package, review version changes, adapt your code for any new API behaviors, and always refer to release notes for critical info.
+</Tip>
+
+<Warning>
+Breaking changes or new behaviors in feature flag evaluation may alter your application's decision logic. Test thoroughly before deploying to production.
+</Warning>
+
+<Check>
+Confirm your feature flags continue to evaluate correctly post-upgrade by running automated and manual tests with real user scenarios.
+</Check>
+
+---
+
+For detailed information, consult:
+
+- [PostHog Go Feature Flags API Reference](/api-reference/core-entities/feature-flags)
+- [Breaking Changes & Deprecations](/changelog/upgrade-guidance/breaking-changes)
+- [Latest Release Notes](/changelog/release-notes/latest-release)
+- [Using Feature Flags Guide](/guides/core-workflows/using-feature-flags)
+
+---
